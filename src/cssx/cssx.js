@@ -41,20 +41,10 @@
  *
  */
 
-define(['./css'], function (css) {
+define(['./css', './common'], function (css, common) {
 	"use strict";
 
-	var undef,
-		beget = (function () {
-			function F () {}
-			return function (proto, props) {
-				F.prototype = proto;
-				var o = new F();
-				for (var p in props) {
-					o[p] = props[p];
-				}
-			}
-		})();
+	var undef;
 
 	function checkCssxDirectives (text) {
 		// check for any cssx markers in the file
@@ -77,7 +67,7 @@ define(['./css'], function (css) {
 		return list ? (',' + list + ',').indexOf(',' + item + ',') >= 0 : false;
 	}
 
-	return beget(css, {
+	return common.beget(css, {
 
 		load: function (resourceDef, require, callback, config) {
 
