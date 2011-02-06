@@ -41,8 +41,10 @@ define(function () {
 			return function (proto, props) {
 				F.prototype = proto;
 				var o = new F();
-				for (var p in props) {
-					o[p] = props[p];
+				if (props) {
+					for (var p in props) {
+						o[p] = props[p];
+					}
 				}
 			}
 		})(),
