@@ -27,14 +27,10 @@ define(
 				// 		selectors: String|Array
 				// 		sheet: String
 				if (parseArgs.propValue.match(/inline-block/) && parseArgs.propName.match(/display/)) {
-					processor.resolve([
-						{propName: 'display', propValue: 'inline'},
-						{propName: 'zoom', propValue: '1'}
+					processor.addRule([
+						{selectors: parseArgs.selectors, propName: 'display', propValue: 'inline'},
+						{selectors: parseArgs.selectors, propName: 'zoom', propValue: '1'}
 					]);
-				}
-				else {
-					// nothing to do
-					processor.resolve();
 				}
 			}
 

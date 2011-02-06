@@ -12,11 +12,6 @@
 define(
 	function () {
 
-		function cssxFinder (str) {
-			var m = /\s*-cssx-(\w*)/.match(str);
-			return m && m[1];
-		}
-
 		return {
 
 			onProperty: function (processor, parseArgs) {
@@ -35,6 +30,7 @@ define(
 					// optimize common case in which bottom is in pixels already or is 0 (IE always uses '0px' for '0')
 					if (value.match(/px$/)) {
 						result = {
+							selectors: parseArgs.selectors,
 							propName: 'height',
 							propValue: 'expression(cssx_ieLayout_checkBoxHeight(this, ' + parseInt(value) + '))'
 						};
@@ -42,10 +38,12 @@ define(
 					else {
 						result = [
 							{
+								selectors: parseArgs.selectors,
 								propName: 'height',
 								propValue: 'expression(cssx_ieLayout_checkBoxHeight(this))'
 							},
 							{
+								selectors: parseArgs.selectors,
 								propName: 'bottom',
 								propValue:'expression("' + value + '")'
 							}
@@ -55,6 +53,7 @@ define(
 				else if (prop == 'right' && value != 'auto') {
 					if (value.match(/px$/)) {
 						result = {
+							selectors: parseArgs.selectors,
 							propName: 'width',
 							propValue: 'expression(cssx_ieLayout_checkBoxWidth(this, ' + parseInt(value) + '))'
 						};
@@ -62,10 +61,12 @@ define(
 					else {
 						result = [
 							{
+								selectors: parseArgs.selectors,
 								propName: 'width',
 								propValue: 'expression(cssx_ieLayout_checkBoxWidth(this))'
 							},
 							{
+								selectors: parseArgs.selectors,
 								propName: 'right',
 								propValue:'expression("' + value + '")'
 							}
@@ -73,7 +74,9 @@ define(
 					}
 				}
 
-				processor.resolve(result);
+				if (result) {
+					processor.addRule(result);
+				}
 
 			}
 

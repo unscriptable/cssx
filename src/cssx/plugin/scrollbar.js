@@ -29,14 +29,11 @@ define(
 				// 		selectors: String|Array
 				// 		sheet: String
 				if (/-cssx-scrollbar/.test(parseArgs.propValue)) {
-					processor.resolve({
+					processor.addRule({
+						selectors: parseArgs.selectors,
 						propName: parseArgs.propName,
 						propValue: parseArgs.propValue === '-cssx-scrollbar-width' ? getSbSize().w : getSbSize().h
 					});
-				}
-				else {
-					// nothing to do
-					processor.resolve();
 				}
 			}
 

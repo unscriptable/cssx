@@ -46,15 +46,7 @@ define(
 							// plugin will resolve or reject
 							plugins[0].onProperty(processor, parseArgs);
 						}
-						else {
-							// nothing to do
-							processor.resolve();
-						}
 					});
-				}
-				else {
-					// plugin is already active and will respond directly
-					processor.resolve();
 				}
 			}
 

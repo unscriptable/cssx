@@ -62,6 +62,31 @@ define(
 	function (css, common, CssTextParser, sniff, activations) {
 		"use strict";
 
+		// TODO: rewrite css.js using promises and inherit Promise from there
+		function Promise () {
+			this._callbacks = [];
+		}
+
+		Promise.prototype = {
+
+			then: function (resolve, reject) {
+				this._callbacks.push({ resolve: resolve, reject: reject });
+			},
+
+			resolve: function (val) { this._complete('resolve', val); },
+
+			reject: function (ex) { this._complete('reject', ex); },
+
+			_complete: function (which, arg) {
+				this.then = which === 'resolve' ?
+					function (resolve, reject) { resolve(arg); } :
+					function (resolve, reject) { reject(arg); };
+				var cbo, i = 0;
+				while (cbo = this._callbacks[i++]) { cbo[which] && cbo[which](arg); }
+			}
+			
+		};
+
 		var preloading,
 			undef;
 
@@ -86,9 +111,75 @@ define(
 			return list ? (',' + list + ',').indexOf(',' + item + ',') >= 0 : false;
 		}
 
+//		function chain (func, after) {
+//			return function (processor, args) {
+//				func(processor, args);
+//				after(processor, args);
+//			};
+//		}
+
+		function applyCssx (processor, cssText, plugins) {
+			// attach plugin callbacks
+			var callbacks = {
+					onSheet: undef,
+					onRule: undef,
+					onEndRule: undef,
+					onAtRule: undef,
+					onImport: undef,
+					onSelector: undef,
+					onProperty: undef
+				},
+				count = 0;
+			for (var p in callbacks) (function (cb, p) {
+				for (var i = 0; i < plugins.length; i++) {
+					if (plugins[i][p]) {
+						cb = function (processor, args) {
+							cb && cb(processor, args);
+							plugins[i][p](processor, args);
+						};
+//						cb = chain(cb, plugins[i][p]);
+						count++;
+					}
+				}
+				if (cb !== undef) {
+					callbacks[p] = function () { cb(processor, arguments); }
+				}
+			}(callbacks[p], p));
+			if (count > 0) {
+				// TODO: parse file, applying cssx fixes as found
+				new CssTextParser(callbacks).parse(cssText);
+			}
+			processor.resolve(processor.cssText);
+		}
+
 		return common.beget(css, {
 
 			load: function (name, require, callback, config) {
+
+				// create a promise
+				var promise = new Promise();
+
+				// add some useful stuff to it
+				processor.cssText = '';
+				processor.addRule = function (objOrArray) {
+					var rules = [].concat(objOrArray),
+						rule, i = 0;
+					while (rule = rules[i++]) {
+						this.cssText += rule;
+					}
+				};
+
+				// tell promise to write out style element when it's resolved
+				promise.then(function (cssText) {
+					// TODO: finish this
+					if (cssText) createStyleNode(cssText, cssDef.link);
+				});
+
+				// tell promise to call back to the loader
+				promise.then(
+					callback.resolve ? callback.resolve : callback,
+					callback.reject ? callback.reject : undef
+				);
 
 				// check for preloads
 				if (preloading === undef) {
@@ -108,6 +199,7 @@ define(
 					preloading = false;
 				}
 
+				// check for special instructions (via suffixes) on the name 
 				var opts = css.parseSuffixes(name),
 					dontExecCssx = config.cssxDirectiveLimit <= 0 && listHasItem(opts.ignore, 'all'),
 					cssDef = {};
@@ -124,9 +216,9 @@ define(
 								// TODO: if cssxAuto, use the auto plugin to scan -cssx- plugin references in file and load them
 								// TODO: create a list of inspections from cssxPreload + cssxAuto discoveries - cssxIgnore + !inspect - !ignore
 
-								// TODO: parse file, applying cssx fixes as found
-								new CssTextParser({
-									// put calls to onXXX callbacks here
+								var directives = [];
+								require(directives, function () {
+									applyCssx(promise, cssDef, cssText, Array.prototype.slice.call(arguments, 0));
 								});
 							}
 						}
