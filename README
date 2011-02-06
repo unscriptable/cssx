@@ -1,0 +1,108 @@
+cssx (Cujo Style Sheet eXtender)
+
+----------------------------------------
+
+What is it?
+
+Cssx is an AMD-compliant plugin that loads and augments css files. It's
+a critical part of the cujo.js application framework, but can be used
+independently of any other cujo.js micro-libraries.
+
+If you want to just use the css-loading capabilities of cssx, you can
+simply copy the css.js file into your project. It's also stand-alone.
+css.js requires the use of an AMD-compliant asynchronous loader such as
+RequireJS or curl.js (another awesome cujo.js micro-library). More notes
+about using css.js are at the bottom of this file.
+
+----------------------------------------
+
+Why would you want to augment css files?
+
+Mainly, to provide fixes for browsers that don't support CSS 3 or CSS 2.1.
+Cssx has it's own plugins. These plugins modify css in various ways, such as:
+
+ 1) convert opacity and rgba to something that works in IE, e.g.:
+    opacity:0.1; to filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=10);
+ 2) implement "box offset positioning" in IE6
+    (http://www.w3.org/TR/CSS2/visuren.html#position-props)
+ 3) implement advanced selectors in IE 6&7, e.g.:
+    input[type=checkbox], .class1.class2, .parent > .child
+ 4) automatically convert css3 properties to vendor-specific properties, e.g.:
+    transition:opacity 1s ease; to -webkit-transition:opacity 1s ease;
+ 5) automatically convert machine-specific measurements, e.g.:
+ 	margin-right: -cssx-scrollbar-width; to margin-right: 15px;
+
+All of the above are already implemented and work dynamically (not statically
+like when using Selectivizr)! Because cssx is plugin-based, you can add your
+own plugins.
+
+----------------------------------------
+
+Doesn't run-time augmentation of css take up valuable load time?
+
+Yes. It does. But probably not as much as you think. It takes a few
+milliseconds to process a reasonably-sized css file. cssx provides several
+configuration options to help streamline the parsing process.
+
+Current work on AMD is focused on building optimized bundles of javascript
+for each browser.  This is called User Agent Profiling. UA Profiling also
+extends to AMD plugins like cssx.  UA Profiling will allow css augmentation
+to run on the server, rather than in the browser, eliminating the expensive
+text parsing.
+
+cujo.js's build tool, cram (Cujo Resource AsseMbler), is only in the proof-
+of-concept stages. We expect it to be ready by mid 2011.
+
+----------------------------------------
+
+How do I just use css.js in my RequireJS or curl.js project?
+
+First, copy css.js into your project. It's simplest if you copy it into a cssx
+sub-folder of your javascript folder.  For instance, if your web app's
+javascript is in the /js/ folder, then place css.js into the /js/cssx/ folder:
+
+/js/cssx/css.js
+
+If the baseUrl of require.js or curl.js points to the /js/ folder, then you
+should be able to start specifying css resources in your require() and define()
+calls like this:
+
+require(["cssx/css!path/to/css/file.css"], funcToRunAfterCssIsReady);
+
+If you're not familiar with AMD plugin notation, then it's time to go RTFM. :)
+In short, everything before the ! is a path to the plugin. The path is rooted
+at the baseUrl configuration parameter of the loader (just like other
+javascript modules).
+
+The .css extension is optional in curl.js, but seems to be necessary in
+current versions of RequireJS (last checked in version 0.22).
+
+By default, css.js will load and wait for the css file to be applied to the
+document before calling your callback function.  In the example above, the css
+rules of the file.css stylesheet will be fully functional before the function,
+funcToRunAfterCssIsReady, is executed.
+
+Just for kicks, here's another typical use of a require() call:
+
+require(
+	[
+		"myApp/appLoader", // the main javascript file
+		"cssx/css!common/css/base.css", // some base css file (resets, etc.)
+		"cssx/css!myApp/css/appTheme.css", // an app-specific set of overrides
+		"text!myApp/pageTemplate.html" // the main template for the page
+	],
+	function (loader, base, theme, template) {
+		/*
+		   in here:
+		   loader refers to your main javascript module
+		   base refers to the <LINK> that refers to base.css
+		   theme refers to the <LINK> that refers to appTheme.css
+		   template contains the text of the page template in pageTemplate.html
+		*/
+	}
+);
+
+You'll probably won't want to do anything with the <LINK> elements that
+are returned to your callback function, but they're provided just in case. :)
+
+----------------------------------------

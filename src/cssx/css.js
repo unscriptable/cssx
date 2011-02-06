@@ -17,6 +17,12 @@
  * not even Chrome 8 or FF4b7 have it, yet.
  * http://www.w3.org/TR/html5/semantics.html#the-link-element)
  *
+ * Note: This file is stand-alone -- it intentionally does not depend on
+ * any other cssx modules -- so that it can be used as a lightweight
+ * css-loading plugin for RequireJS or curl.js (or any other AMD-compliant
+ * loader). To use this plugin in your project (without the rest of cssx)
+ * just copy it into your project and map a path to it in any way you like.
+ *
  * This plugin tries to use the load event and a universal work-around when
  * it is invoked the first time.  If the load event works, it is used on
  * every successive load.  Therefore, browsers that support the load event will
