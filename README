@@ -1,18 +1,22 @@
 cssx (Cujo Style Sheet eXtender)
 
+current version: 0.1
+
 ----------------------------------------
 
 What is it?
 
 Cssx is an AMD-compliant plugin that loads and augments css files. It's
-a critical part of the cujo.js application framework, but can be used
-independently of any other cujo.js micro-libraries.
+an important part of the cujo web app framework, but can be used
+independently of any other cujo micro-library. Cssx only requires an
+AMD-compliant module loader, such as RequireJS, Backdraft's loader, or
+curl.js (another awesome cujo micro-library).
 
 If you want to just use the css-loading capabilities of cssx, you can
-simply copy the css.js file into your project. It's also stand-alone.
-css.js requires the use of an AMD-compliant asynchronous loader such as
-RequireJS or curl.js (another awesome cujo.js micro-library). More notes
-about using css.js are at the bottom of this file.
+simply copy the css.js file into your project. It does not rely on any other
+files in this repo. css.js requires the use of an AMD-compliant module
+loader just like cssx does. More notes about using css.js are in the section 
+"How do I just use css.js in my RequireJS or curl.js project?" (below).
 
 ----------------------------------------
 
@@ -32,9 +36,9 @@ Cssx has it's own plugins. These plugins modify css in various ways, such as:
  5) automatically convert machine-specific measurements, e.g.:
  	margin-right: -cssx-scrollbar-width; to margin-right: 15px;
 
-All of the above are already implemented and work dynamically (not statically
-like when using Selectivizr)! Because cssx is plugin-based, you can add your
-own plugins.
+All of the above (and several others) are already implemented and work
+dynamically (not statically like when using Selectivizr)! Because cssx is
+plugin-based, you can create and add your own cssx plugins.
 
 ----------------------------------------
 
@@ -55,7 +59,104 @@ of-concept stages. We expect it to be ready by mid 2011.
 
 ----------------------------------------
 
+How do I start using cssx?
+
+To start using cssx, just copy (or clone) the src/cssx folder into your project
+and map one of your AMD loader paths to it. There are several ways to map your
+loader paths. Go RTFM if you want to get the intimate details. In summary, you
+should map your loader's baseUrl to a common folder to all your javascript
+modules (including plugins such as cssx), if a common folder exists. Then,
+create path configuration options for any module roots that aren't peers within
+the baseUrl folder. Here's a simple example:
+
+// this is just one way to set the configuration for RequireJS or curl.js:
+require = {
+	baseUrl: 'js/', // maps to the js folder that is a peer to this page
+	paths: {
+		myApp: 'myCompany/myApp', // maps to js/myCompany/myApp/
+		cssx: '../libs/cssx' // maps to libs/cssx
+		// Note: libs and js are peer folders
+	}
+};
+
+Once you've got the paths configured correctly, you can start referencing the
+cssx plugin in your code.  Typically, you'll do this in define() calls. By
+convention, you should invoke the plugin by using a prefix with a complete path
+to the plugin. Prefixes are delineated by a ! symbol in the module name. (CSS
+files are considered resources by AMD loaders, but have the same syntax as
+modules.)
+
+define(
+	[
+		'myApp/moduleA', // a javascript module dependency
+		'text!templates/myTemplate.html', // example usage of the text plugin
+		'cssx/cssx!styles/moduleA.css' // our css file!
+	],
+	function (moduleA, template, cssxDef) {
+		// code some awesomeness here
+	}
+);
+
+In this example, the stylesheet, moduleA.css is loaded, parsed, and augmented
+by cssx before the callback function is executed.  When the callback function
+executes, it is handed an object, cssxDef, which -- except for tinkerers and
+the curious -- is not of much use.  It contains a reference to the original
+<LINK> element inserted as well as a possible <STYLE> element if additional
+rules were needed to implement fixes for the current browser. Any other
+properties of this object are subject to change in future releases.
+
+Even if the returned object is not of direct use, it is extremely useful to
+know that the styles in your stylesheet are:
+
+ 1) ready for immediate use (it's ok to display content now)
+ 2) converted to work with the current browser
+
+Note: the .css extension is optional in curl.js, but appears to be necessary in
+current versions of RequireJS (version 0.22).
+
+Typically, you don't want to scan every css file for every possible browser fix
+(although maybe you do :D ). There are several ways to fine-tune the set of
+cssx plugins that get loaded. The simplest way to do this from javascript is
+via plugin suffixes. These are appended to the module/resource name in the
+dependency list:
+
+define(['cssx/cssx!myStyles.css!ignore:inlineBlock,boxOffsets'], callbackFunc);
+
+The suffixes are again delineated by the ! symbol, but appear after the module
+name. In this example, cssx has been instructed to ignore any inline-block or
+box offset fixes. In fact, it won't even attempt to load the cssx plugins for
+those. See the section, "How can I optimize cssx to only scan my css files for
+certain fixes?" for more details about optimizing cssx.
+
+----------------------------------------
+
+What CSS 2.1 and CSS 3 features does cssx fix?
+
+TODO: Complete list
+
+----------------------------------------
+
+How can I optimize cssx to only scan my css files for certain fixes?
+
+TODO: Show auto and manual modes and all three methods of specifying options
+
+----------------------------------------
+
+Is there any advantage to using cujo's curl.js with cssx?
+
+Yes. Unlike other AMD loaders, curl.js passes javascript promises to its
+plugins rather than just a callback function. curl.js does this in a backward-
+compatible way. This allows cssx plugins to proactively stop the loading
+process in response to errors. curl.js can also directly notify plugins that
+an exception has occurred elsewhere so the plugins can clean-up accordingly.
+
+----------------------------------------
+
 How do I just use css.js in my RequireJS or curl.js project?
+
+The css.js file in this project can be used independently of the rest of cssx.
+If you're just interested in loading css files in your AMD-based project, this
+is all you need!
 
 First, copy css.js into your project. It's simplest if you copy it into a cssx
 sub-folder of your javascript folder.  For instance, if your web app's
@@ -82,11 +183,11 @@ document before calling your callback function.  In the example above, the css
 rules of the file.css stylesheet will be fully functional before the function,
 funcToRunAfterCssIsReady, is executed.
 
-Just for kicks, here's another typical use of a require() call:
+For a more complete example, here's another typical use of a require() call:
 
 require(
 	[
-		"myApp/appLoader", // the main javascript file
+		"myApp/appLoader", // the main javascript module
 		"cssx/css!common/css/base.css", // some base css file (resets, etc.)
 		"cssx/css!myApp/css/appTheme.css", // an app-specific set of overrides
 		"text!myApp/pageTemplate.html" // the main template for the page
@@ -105,4 +206,30 @@ require(
 You'll probably won't want to do anything with the <LINK> elements that
 are returned to your callback function, but they're provided just in case. :)
 
+If you don't want to write-out the full path of the plugin prefix ('cssx/css!')
+and would rather just write 'css!', then you can either move the css.js file up
+one folder level or give the loader a hint where to find css.js. Both curl.js
+and RequireJS will accept a paths configuration option. There are several ways
+to specify the paths option, but the following works with both:
+
+require(
+	{
+		baseUrl: 'js/', // set this to the root of your paths
+		paths: {
+			'css' : 'cssx/css'
+		}
+	},
+	[
+		// place your other dependencies here
+		'css!common/css/base.css' // look ma, no cssx path in my prefix!
+	],
+	function (/* dependencies */) {
+		// do something really cool here
+	}
+);
+
 ----------------------------------------
+
+How do I get assistance using cssx?
+
+Discussion group coming soon.
