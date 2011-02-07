@@ -154,6 +154,8 @@ define(
 
 		return common.beget(css, {
 
+			version: '0.1',
+
 			load: function (name, require, callback, config) {
 
 				// create a promise
