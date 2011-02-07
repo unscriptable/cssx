@@ -260,7 +260,7 @@ function loadDetector (params, cb) {
 
 var plugin = {
 
-		//prefix: 'css',
+		version: '0.1',
 
 		load: function (resourceDef, require, callback, config) {
 
