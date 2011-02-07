@@ -64,13 +64,14 @@ define(
 
 		// TODO: rewrite css.js using promises and inherit Promise from there
 		function Promise () {
-			this._callbacks = [];
+			this._thens = [];
 		}
 
 		Promise.prototype = {
 
 			then: function (resolve, reject) {
-				this._callbacks.push({ resolve: resolve, reject: reject });
+				// capture calls to then()
+				this._thens.push({ resolve: resolve, reject: reject });
 			},
 
 			resolve: function (val) { this._complete('resolve', val); },
@@ -78,11 +79,14 @@ define(
 			reject: function (ex) { this._complete('reject', ex); },
 
 			_complete: function (which, arg) {
+				// switch over to sync then()
 				this.then = which === 'resolve' ?
 					function (resolve, reject) { resolve(arg); } :
 					function (resolve, reject) { reject(arg); };
-				var cbo, i = 0;
-				while (cbo = this._callbacks[i++]) { cbo[which] && cbo[which](arg); }
+				// complete all async then()s
+				var aThen, i = 0;
+				while (aThen = this._thens[i++]) { aThen[which] && aThen[which](arg); }
+				delete this._thens;
 			}
 			
 		};
