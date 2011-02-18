@@ -1,10 +1,12 @@
 cssx (Cujo Style Sheet eXtender)
 
 current version: 0.1
+Note: all but the css.js plugin is in flux right now. You may use
+the css.js file safely. It now works with Chrome 10.
 
 ----------------------------------------
 
-What is it?
+What is cssx?
 
 Cssx is an AMD-compliant plugin that loads and augments css files. It's
 an important part of the cujo web app framework, but can be used
