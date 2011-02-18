@@ -46,6 +46,7 @@ define(function () {
 						o[p] = props[p];
 					}
 				}
+				return o;
 			}
 		})(),
 

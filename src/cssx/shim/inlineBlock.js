@@ -1,5 +1,5 @@
 /*
-    cssx/plugin/inlineBlock
+    cssx/shim/inlineBlock
     (c) copyright 2010, unscriptable.com
     author: john
 
@@ -12,11 +12,6 @@
 define(
 	function () {
 
-		function cssxFinder (str) {
-			var m = /\s*-cssx-(\w*)/.match(str);
-			return m && m[1];
-		}
-
 		return {
 
 			onProperty: function (processor, parseArgs) {
@@ -26,8 +21,8 @@ define(
 				// 		value: String
 				// 		selectors: String|Array
 				// 		sheet: String
-				if (parseArgs.propValue.match(/inline-block/) && parseArgs.propName.match(/display/)) {
-					processor.addRule([
+				if ('inline-block' === parseArgs.propValue && 'display' === parseArgs.propName) {
+					processor.appendRule([
 						{selectors: parseArgs.selectors, propName: 'display', propValue: 'inline'},
 						{selectors: parseArgs.selectors, propName: 'zoom', propValue: '1'}
 					]);

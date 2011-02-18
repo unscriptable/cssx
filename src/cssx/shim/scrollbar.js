@@ -1,5 +1,5 @@
 /*
-    cssx/plugin/scrollbar
+    cssx/shim/scrollbar
     (c) copyright 2010, unscriptable.com
     author: john
 
@@ -29,7 +29,7 @@ define(
 				// 		selectors: String|Array
 				// 		sheet: String
 				if (/-cssx-scrollbar/.test(parseArgs.propValue)) {
-					processor.addRule({
+					processor.appendRule({
 						selectors: parseArgs.selectors,
 						propName: parseArgs.propName,
 						propValue: parseArgs.propValue === '-cssx-scrollbar-width' ? getSbSize().w : getSbSize().h

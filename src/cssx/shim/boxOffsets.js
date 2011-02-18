@@ -1,5 +1,5 @@
 /*
-    cssx/plugin/boxOffsets
+    cssx/shim/boxOffsets
     (c) copyright 2010, unscriptable.com
     author: john
 
@@ -7,6 +7,8 @@
     license at the following url: http://www.opensource.org/licenses/afl-3.0.php.
 
     This cssx plugin fixes lack of box offset positioning in IE6.
+
+    TODO: the logic in here could be improved a bit
 
 */
 define(
@@ -26,13 +28,13 @@ define(
 					value = parseArgs.propValue,
 					result;
 
-				if (prop == 'bottom' && value != 'auto') {
+				if (prop === 'bottom' && value !== 'auto') {
 					// optimize common case in which bottom is in pixels already or is 0 (IE always uses '0px' for '0')
 					if (value.match(/px$/)) {
 						result = {
 							selectors: parseArgs.selectors,
 							propName: 'height',
-							propValue: 'expression(cssx_ieLayout_checkBoxHeight(this, ' + parseInt(value) + '))'
+							propValue: 'expression(cssx_boxOffsets_checkBoxHeight(this, ' + parseInt(value) + '))'
 						};
 					}
 					else {
@@ -40,7 +42,7 @@ define(
 							{
 								selectors: parseArgs.selectors,
 								propName: 'height',
-								propValue: 'expression(cssx_ieLayout_checkBoxHeight(this))'
+								propValue: 'expression(cssx_boxOffsets_checkBoxHeight(this))'
 							},
 							{
 								selectors: parseArgs.selectors,
@@ -50,12 +52,12 @@ define(
 						];
 					}
 				}
-				else if (prop == 'right' && value != 'auto') {
+				else if (prop === 'right' && value !== 'auto') {
 					if (value.match(/px$/)) {
 						result = {
 							selectors: parseArgs.selectors,
 							propName: 'width',
-							propValue: 'expression(cssx_ieLayout_checkBoxWidth(this, ' + parseInt(value) + '))'
+							propValue: 'expression(cssx_boxOffsets_checkBoxWidth(this, ' + parseInt(value) + '))'
 						};
 					}
 					else {
@@ -63,7 +65,7 @@ define(
 							{
 								selectors: parseArgs.selectors,
 								propName: 'width',
-								propValue: 'expression(cssx_ieLayout_checkBoxWidth(this))'
+								propValue: 'expression(cssx_boxOffsets_checkBoxWidth(this))'
 							},
 							{
 								selectors: parseArgs.selectors,
@@ -75,7 +77,7 @@ define(
 				}
 
 				if (result) {
-					processor.addRule(result);
+					processor.appendRule(result);
 				}
 
 			}
@@ -85,9 +87,9 @@ define(
 	}
 );
 
-// unfortunately, IE needs these functions to be global
+// it's easiest if these functions are global
 
-function cssx_ieLayout_checkBoxHeight (node, bVal) {
+function cssx_boxOffsets_checkBoxHeight (node, bVal) {
     var style = node.currentStyle,
         parent = node.offsetParent,
 		doc = node.ownerDocument;
@@ -102,7 +104,7 @@ function cssx_ieLayout_checkBoxHeight (node, bVal) {
         return '';
 }
 
-function cssx_ieLayout_checkBoxWidth (node, rVal) {
+function cssx_boxOffsets_checkBoxWidth (node, rVal) {
     var style = node.currentStyle,
         parent = node.offsetParent,
 		doc = node.ownerDocument;

@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+<meta charset="UTF-8">
+<title>Run shim Unit Tests</title>
+
+<script>
+	require = {
+		paths: {
+			cssx: '../src/cssx/'
+		}
+	};
+</script>
+
+<!--<script src="require.js"></script>-->
+<script src="curl.js"></script>
+
+<script>
+var now = new Date();
+//console.profile();
+require(['cssx/cssx!ss/scrollbar.css'], function (cssx) {
+	//console.profileEnd();
+	console.log(new Date() - now);
+});
+
+</script>
+
+</head>
+<body>
+
+<div class="scrolltest">this box has a border on the top</div>
+
+</body>
+</html>

@@ -1,5 +1,5 @@
 /*
-    cssx/plugin/auto
+    cssx/shim/auto
     (c) copyright 2010, unscriptable.com
     author: john
 
@@ -13,6 +13,8 @@
     The following are examples
     border-left-width: -cssx-scrollbar-width; <-- loads the scrollbar plugin
     -cssx-transition: top 1s ease; <-- loads the transition plugin
+
+TODO: remove this file
 
 */
 define(
