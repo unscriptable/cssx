@@ -57,7 +57,6 @@ define(
 	[
 		'require',
 		'./css',
-		'./common',
 		'./CssTextParser',
 		'./sniff',
 		'./shim/_bundles',
@@ -223,37 +222,35 @@ define(
 		getAllShims(require, function (allShims) {
 			shims = allShims;
 		});
+		function CSS(){}
+		CSS.prototype = css;
+		var cssx = new CSS();
+		cssx.load = function (name, require, callback, config) {
 
-		return common.beget(css, {
+			// create a promise
+			var processor = new Promise();
 
-			version: '0.1',
+			// add some useful stuff to it
+			processor.cssText = '';
+			processor.appendRule = function (objOrArray) {
+				var rules = [].concat(objOrArray),
+					rule, i = 0;
+				while (rule = rules[i++]) {
+					this.cssText += rule;
+				}
+			};
 
-			load: function (name, require, callback, config) {
+			// tell promise to write out style element when it's resolved
+			processor.then(function (cssText) {
+				// TODO: finish this
+				if (cssText) createStyleNode(cssText, cssDef.link);
+			});
 
-				// create a promise
-				var processor = new Promise();
-
-				// add some useful stuff to it
-				processor.cssText = '';
-				processor.appendRule = function (objOrArray) {
-					var rules = [].concat(objOrArray),
-						rule, i = 0;
-					while (rule = rules[i++]) {
-						this.cssText += rule;
-					}
-				};
-
-				// tell promise to write out style element when it's resolved
-				processor.then(function (cssText) {
-					// TODO: finish this
-					if (cssText) createStyleNode(cssText, cssDef.link);
-				});
-
-				// tell promise to call back to the loader
-				processor.then(
-					callback.resolve ? callback.resolve : callback,
-					callback.reject ? callback.reject : undef
-				);
+			// tell promise to call back to the loader
+			processor.then(
+				callback.resolve ? callback.resolve : callback,
+				callback.reject ? callback.reject : undef
+			);
 
 //				// check for preloads
 //				if (preloading === undef) {
@@ -273,53 +270,52 @@ define(
 //					preloading = false;
 //				}
 
-				// check for special instructions (via suffixes) on the name 
-				var opts = css.parseSuffixes(name),
-					dontExecCssx = config.cssxDirectiveLimit <= 0 && listHasItem(opts.ignore, 'all'),
-					cssDef = {};
+			// check for special instructions (via suffixes) on the name 
+			var opts = css.parseSuffixes(name),
+				dontExecCssx = config.cssxDirectiveLimit <= 0 && listHasItem(opts.ignore, 'all'),
+				cssDef = {};
 
-				function process () {
+			function process () {
 //					if (!preloading) {
-						if (cssDef.link) {
-							if (dontExecCssx) {
-								callback(cssDef);
-							}
-							else if (cssDef.cssText != undef /* truthy if null or undefined, but not "" */) {
-								// TODO: get directives in file to see what rules to skip/exclude
-								//var directives = checkCssxDirectives(cssDef.cssText);
-								// TODO: get list of excludes from suffixes
+					if (cssDef.link) {
+						if (dontExecCssx) {
+							callback(cssDef);
+						}
+						else if (cssDef.cssText != undef /* truthy if null or undefined, but not "" */) {
+							// TODO: get directives in file to see what rules to skip/exclude
+							//var directives = checkCssxDirectives(cssDef.cssText);
+							// TODO: get list of excludes from suffixes
 
 
 //								var directives = [];
 //								require(directives, function () {
-									applyCssx(processor, cssDef, cssDef.cssText, Array.prototype.slice.call(arguments, 0));
+								applyCssx(processor, cssDef, cssDef.cssText, Array.prototype.slice.call(arguments, 0));
 //								});
-							}
 						}
+					}
 //					}
-				}
-
-				function gotLink (link) {
-					cssDef.link = link;
-					process();
-				}
-
-				function gotText (text) {
-					cssDef.cssText = text;
-					process();
-				}
-
-				// get css file (link) via the css plugin
-				css.load(name, require, gotLink, config);
-				if (!dontExecCssx) {
-					// get the text of the file, too
-					// Is it really safe to rely on the text! plugin? That is not guaranteed to be there in all AMD environments, is it?
-					require(['text!' + name], gotText);
-				}
-
 			}
 
-		});
+			function gotLink (link) {
+				cssDef.link = link;
+				process();
+			}
 
+			function gotText (text) {
+				cssDef.cssText = text;
+				process();
+			}
+
+			// get css file (link) via the css plugin
+			css.load(name, require, gotLink, config);
+			if (!dontExecCssx) {
+				// get the text of the file, too
+				// Is it really safe to rely on the text! plugin? That is not guaranteed to be there in all AMD environments, is it?
+				require(['text!' + name], gotText);
+			}
+
+		};
+
+		return cssx;
 	}
 );
