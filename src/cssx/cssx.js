@@ -292,7 +292,7 @@ define(
 
 //								var directives = [];
 //								require(directives, function () {
-									applyCssx(processor, cssDef, cssText, Array.prototype.slice.call(arguments, 0));
+									applyCssx(processor, cssDef, cssDef.cssText, Array.prototype.slice.call(arguments, 0));
 //								});
 							}
 						}
@@ -313,6 +313,7 @@ define(
 				css.load(name, require, gotLink, config);
 				if (!dontExecCssx) {
 					// get the text of the file, too
+					// Is it really safe to rely on the text! plugin? That is not guaranteed to be there in all AMD environments, is it?
 					require(['text!' + name], gotText);
 				}
 
