@@ -1,0 +1,19 @@
+{
+  "name": "cssx",
+  "version": "0.1",
+  "description": "Extensible CSS Loader",
+  "licenses": [
+     {
+         "type": "AFLv2.1",
+         "url": "http://trac.dojotoolkit.org/browser/dojo/trunk/LICENSE#L43"
+     },
+     {
+         "type": "BSD",
+         "url": "http://trac.dojotoolkit.org/browser/dojo/trunk/LICENSE#L13"
+     }
+  ],
+  "directories": {
+    "lib": "src"
+  },
+  "main": "./src/cssx"
+}
