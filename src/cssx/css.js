@@ -78,9 +78,9 @@
 
 var
 	// compressibility shortcuts
-	orsc = 'onreadystatechange',
-	ol = 'onload',
-	ce = 'createElement',
+	onreadystatechange = 'onreadystatechange',
+	onload = 'onload',
+	createElement = 'createElement',
 	// failed is true if RequireJS threw an exception
 	failed = false,
 // true if the onload event handler works
@@ -92,7 +92,7 @@ var
 function loadHandler (params, cb) {
 	// We're using 'readystatechange' because IE and Opera happily support both
 	var link = params.link;
-	link[orsc] = link[ol] = function () {
+	link[onreadystatechange] = link[onload] = function () {
 		if (!link.readyState || link.readyState == 'complete') {
 			useOnload = true;
 			cleanup(params);
@@ -131,7 +131,7 @@ function parseSuffixes (name) {
 }
 
 function createLink (doc, optHref) {
-	var link = (doc || document)[ce]('link');
+	var link = (doc || document)[createElement]('link');
 	link.rel = "stylesheet";
 	link.type = "text/css";
 	if (optHref) {
@@ -153,7 +153,7 @@ var testEl;
 function styleIsApplied () {
 	var doc = document;
 	if (!testEl) {
-		testEl = document[ce]('div');
+		testEl = document[createElement]('div');
 		testEl.id = '_cssx_load_test';
 		testEl.style.cssText = 'position:absolute;top:-999px;left:-999px;';
 		doc.body.appendChild(testEl);
@@ -218,7 +218,7 @@ function loadDetector (params, cb) {
 
 function cleanup (params) {
 	var link = params.link;
-	link[orsc] = link[ol] = null;
+	link[onreadystatechange] = link[onload] = null;
 }
 
 /***** finally! the actual plugin *****/
