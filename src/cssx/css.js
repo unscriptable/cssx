@@ -87,15 +87,6 @@ var
 	useOnload,
 	undef;
 
-// failure detection:
-if (require.onError) {
-	require.onError = (function (orig) {
-		return function () {
-			failed = true;
-			orig.apply(this, arguments);
-		}
-})(require.onError);
-}
 /***** load-detection functions *****/
 
 function loadHandler (params, cb) {
@@ -208,10 +199,6 @@ function ssWatcher (params, cb) {
     if (isLinkReady(params.link)) {
 		cleanup(params);
         cb();
-    }
-    else if (!failed) {
-        // If RequireJS didn't timeout, try again in a bit:
-        setTimeout(function () { ssWatcher(params, cb); }, params.wait);
     }
 }
 
