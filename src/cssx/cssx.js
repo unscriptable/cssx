@@ -134,13 +134,6 @@ define(
 		function applyCssx (processor, cssText, plugins) {
 			// attach plugin callbacks
 			var callbacks = {
-					onSheet: undef,
-					onRule: undef,
-					onEndRule: undef,
-					onAtRule: undef,
-					onImport: undef,
-					onSelector: undef,
-					onProperty: undef
 				},
 				count = 0;
 			try {
@@ -313,7 +306,7 @@ define(
 				// Is it really safe to rely on the text! plugin? That is not guaranteed to be there in all AMD environments, is it?
 				require(['text!' + name], gotText);
 			}
-
+			return processor;
 		};
 
 		return cssx;
