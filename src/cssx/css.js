@@ -83,10 +83,15 @@ var
 	createElement = 'createElement',
 	// failed is true if RequireJS threw an exception
 	failed = false,
-// true if the onload event handler works
-	useOnload,
-	undef;
+	undef,
+	features = {
+		// true if the onload event handler works
+		// "event-link-onload" : false
+	};
 
+function has(feature){
+	return features[feature];
+}
 /***** load-detection functions *****/
 
 function loadHandler (params, cb) {
@@ -94,7 +99,7 @@ function loadHandler (params, cb) {
 	var link = params.link;
 	link[onreadystatechange] = link[onload] = function () {
 		if (!link.readyState || link.readyState == 'complete') {
-			useOnload = true;
+			features["event-link-onload"] = true;
 			cleanup(params);
 			cb();
 		}
@@ -213,7 +218,7 @@ function loadDetector (params, cb) {
 		cb();
 	}
 	loadHandler(params, cbOnce);
-	if (!useOnload) ssWatcher(params, cbOnce);
+	if (!has("event-link-onload")) ssWatcher(params, cbOnce);
 }
 
 function cleanup (params) {
