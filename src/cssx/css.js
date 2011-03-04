@@ -84,6 +84,7 @@ var
 	// failed is true if RequireJS threw an exception
 	failed = false,
 	undef,
+	insertedSheets = {},
 	features = {
 		// true if the onload event handler works
 		// "event-link-onload" : false
@@ -205,6 +206,9 @@ function ssWatcher (params, cb) {
 		cleanup(params);
         cb();
     }
+    else{
+        setTimeout(function () { ssWatcher(params, cb); }, params.wait);
+    }
 }
 
 function loadDetector (params, cb) {
@@ -233,47 +237,55 @@ var plugin = {
 		//prefix: 'css',
 
 		load: function (resourceDef, require, callback, config) {
-
-			var
-				// TODO: this is a bit weird: find a better way to extract name?
-				opts = plugin.parseSuffixes(resourceDef),
-				name = opts.shift(),
-				nameWithExt = plugin.nameWithExt(name, 'css'),
-				url = require.toUrl(nameWithExt),
-				doc = document,
-				head = plugin.findHead(doc),
-				link = plugin.createLink(doc),
-				nowait = 'nowait' in opts ? opts.nowait != 'false' : !!config.cssDeferLoad,
-				params = {
-					doc: doc,
-					head: head,
-					link: link,
-					url: url,
-					wait: config.cssWatchPeriod || 50
-				};
-
-			// all detector functions must ensure that this function only gets
-			// called once per stylesheet!
-			function loaded () {
-				// load/error handler may have executed before stylesheet is
-				// fully parsed / processed in Opera, so use setTimeout.
-				// Opera will process before the it next enters the event loop
-				// (so 0 msec is enough time).
-				setTimeout(function () { callback(link); }, 0);
+			var resources = resourceDef.split(","),
+				loadingCount = resources.length;
+			for(var i = 0; i < resources.length; i++){
+				resourceDef = resources[i];
+				var
+					// TODO: this is a bit weird: find a better way to extract name?
+					opts = plugin.parseSuffixes(resourceDef),
+					name = opts.shift(),
+					nameWithExt = plugin.nameWithExt(name, 'css'),
+					after = url,
+					url = require.toUrl(nameWithExt),
+					doc = document,
+					head = plugin.findHead(doc),
+					link = plugin.createLink(doc),
+					nowait = 'nowait' in opts ? opts.nowait != 'false' : !!config.cssDeferLoad,
+					params = {
+						doc: doc,
+						head: head,
+						link: link,
+						url: url,
+						wait: config.cssWatchPeriod || 50
+					};
+	
+				// all detector functions must ensure that this function only gets
+				// called once per stylesheet!
+				function loaded () {
+					// load/error handler may have executed before stylesheet is
+					// fully parsed / processed in Opera, so use setTimeout.
+					// Opera will process before the it next enters the event loop
+					// (so 0 msec is enough time).
+					if(--loadingCount == 0){
+						setTimeout(function () { callback(link); }, 0);
+					}
+				}
+	
+				if (nowait) {
+					callback(link);
+				}
+				else {
+					// hook up load detector(s)
+					loadDetector(params, loaded);
+				}
+	
+				// go!
+				link.href = url;
+				
+				head.insertBefore(link, after ? insertedSheets[after].nextSibling : head.firstChild);
+				insertedSheets[url] = link;
 			}
-
-			if (nowait) {
-				callback(link);
-			}
-			else {
-				// hook up load detector(s)
-				loadDetector(params, loaded);
-			}
-
-			// go!
-			link.href = url;
-			head.appendChild(link);
-
 		},
 
 		/* the following methods are public in case they're useful to other plugins */
