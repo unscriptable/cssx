@@ -13,7 +13,7 @@
      }
   ],
   "directories": {
-    "lib": "src"
+    "lib": "src/cssx"
   },
-  "main": "./src/cssx"
+  "main": "./src/cssx/cssx"
 }
