@@ -225,9 +225,12 @@ function loadDetector (params, cb) {
 	// Detecting it cross-browser is completely impossible, too, since
 	// THE BROWSERS ARE LIARS! DON'T TELL ME YOU HAVE AN ONLOAD PROPERTY
 	// IF IT DOESN'T DO ANYTHING!
+	var loaded;
 	function cbOnce () {
-		cbOnce = function () {};
-		cb();
+		if (!loaded) {
+			loaded = true;
+			cb();
+		}
 	}
 	loadHandler(params, cbOnce);
 	if (!useOnload) ssWatcher(params, cbOnce);
