@@ -31,9 +31,9 @@
  * fully processing the rest of the importing stylesheet. Therefore, we
  * don't need to find and wait for any @import rules explicitly.
  *
- * Note #2: for Chrome compatibility, stylesheets must have at least one rule.
+ * Note #2: for Opera compatibility, stylesheets must have at least one rule.
  * AFAIK, there's no way to tell the difference between an empty sheet and
- * one that isn't finished loading in Chrome (XD or same-domain).
+ * one that isn't finished loading in Opera (XD or same-domain).
  *
  * Options:
  *      !nowait - does not wait for the stylesheet to be parsed, just loads it
