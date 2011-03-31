@@ -97,13 +97,13 @@
 	}
 
 	// failure detection:
-	if (require.onError) {
-		require.onError = (function (orig) {
+	if (require['onError']) {
+		require['onError'] = (function (orig) {
 			return function () {
 				failed = true;
 				orig.apply(this, arguments);
 			}
-		})(require.onError);
+		})(require['onError']);
 	}
 
 	/***** load-detection functions *****/
@@ -239,37 +239,39 @@
 
 			//prefix: 'css',
 
-			load: function (resourceDef, require, callback, config) {
+			'load': function (resourceDef, require, callback, config) {
 				var resources = resourceDef.split(","),
 					loadingCount = resources.length;
+
+				// all detector functions must ensure that this function only gets
+				// called once per stylesheet!
+				function loaded () {
+					// load/error handler may have executed before stylesheet is
+					// fully parsed / processed in Opera, so use setTimeout.
+					// Opera will process before the it next enters the event loop
+					// (so 0 msec is enough time).
+					if(--loadingCount == 0){
+						setTimeout(function () { callback(link); }, 0);
+					}
+				}
+
 				for(var i = 0; i < resources.length; i++){
 					resourceDef = resources[i];
 					var
 						// TODO: this is a bit weird: find a better way to extract name?
-						opts = plugin.parseSuffixes(resourceDef),
+						opts = parseSuffixes(resourceDef),
 						name = opts.shift(),
-						nameWithExt = plugin.nameWithExt(name, 'css'),
+						nameWithExt = nameWithExt(name, 'css'),
+						// after will become truthy once the loop executes a second time
 						after = url,
-						url = require.toUrl(nameWithExt),
-						link = plugin.createLink(doc),
-						nowait = 'nowait' in opts ? opts.nowait != 'false' : !!config.cssDeferLoad,
+						url = require['toUrl'](nameWithExt),
+						link = createLink(doc),
+						nowait = 'nowait' in opts ? opts['nowait'] != 'false' : !!config['cssDeferLoad'],
 						params = {
 							link: link,
 							url: url,
-							wait: config.cssWatchPeriod || 50
+							wait: config['cssWatchPeriod'] || 50
 						};
-
-					// all detector functions must ensure that this function only gets
-					// called once per stylesheet!
-					function loaded () {
-						// load/error handler may have executed before stylesheet is
-						// fully parsed / processed in Opera, so use setTimeout.
-						// Opera will process before the it next enters the event loop
-						// (so 0 msec is enough time).
-						if(--loadingCount == 0){
-							setTimeout(function () { callback(link); }, 0);
-						}
-					}
 
 					if (nowait) {
 						callback(link);
@@ -289,11 +291,11 @@
 
 			/* the following methods are public in case they're useful to other plugins */
 
-			nameWithExt: nameWithExt,
+			'nameWithExt': nameWithExt,
 
-			parseSuffixes: parseSuffixes,
+			'parseSuffixes': parseSuffixes,
 
-			createLink: createLink
+			'createLink': createLink
 
 		};
 
