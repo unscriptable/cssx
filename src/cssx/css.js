@@ -93,6 +93,17 @@ var
 function has(feature){
 	return features[feature];
 }
+
+// failure detection:
+if (require.onError) {
+	require.onError = (function (orig) {
+		return function () {
+			failed = true;
+			orig.apply(this, arguments);
+		}
+	})(require.onError);
+}
+
 /***** load-detection functions *****/
 
 function loadHandler (params, cb) {
@@ -262,7 +273,7 @@ var plugin = {
 						url: url,
 						wait: config.cssWatchPeriod || 50
 					};
-	
+
 				// all detector functions must ensure that this function only gets
 				// called once per stylesheet!
 				function loaded () {
@@ -274,7 +285,7 @@ var plugin = {
 						setTimeout(function () { callback(link); }, 0);
 					}
 				}
-	
+
 				if (nowait) {
 					callback(link);
 				}
@@ -282,10 +293,10 @@ var plugin = {
 					// hook up load detector(s)
 					loadDetector(params, loaded);
 				}
-	
+
 				// go!
 				link.href = url;
-				
+
 				head.insertBefore(link, after ? insertedSheets[after].nextSibling : head.firstChild);
 				insertedSheets[url] = link;
 			}
