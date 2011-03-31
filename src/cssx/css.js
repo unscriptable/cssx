@@ -217,7 +217,7 @@
 			cleanup(params);
 			cb();
 		}
-		else{
+		else if (!failed) {
 			setTimeout(function () { ssWatcher(params, cb); }, params.wait);
 		}
 	}
