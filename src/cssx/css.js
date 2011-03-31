@@ -78,40 +78,33 @@
 
 var
 	// compressibility shortcuts
-	orsc = 'onreadystatechange',
-	ol = 'onload',
-	ce = 'createElement',
+	onreadystatechange = 'onreadystatechange',
+	onload = 'onload',
+	createElement = 'createElement',
 	// failed is true if RequireJS threw an exception
 	failed = false,
-// true if the onload event handler works
-	useOnload,
-	undef;
+	undef,
+	insertedSheets = {},
+	features = {
+		// true if the onload event handler works
+		// "event-link-onload" : false
+	};
 
-// failure detection:
-if (require.onError) {
-	require.onError = (function (orig) {
-		return function () {
-			failed = true;
-			orig.apply(this, arguments);
-		}
-})(require.onError);
+function has(feature){
+	return features[feature];
 }
 /***** load-detection functions *****/
 
 function loadHandler (params, cb) {
 	// We're using 'readystatechange' because IE and Opera happily support both
 	var link = params.link;
-	link[orsc] = link[ol] = function () {
+	link[onreadystatechange] = link[onload] = function () {
 		if (!link.readyState || link.readyState == 'complete') {
-			useOnload = true;
+			features["event-link-onload"] = true;
 			cleanup(params);
 			cb();
 		}
 	};
-}
-
-function findDoc () {
-	return window['document'];
 }
 
 function findHead (doc) {
@@ -119,7 +112,7 @@ function findHead (doc) {
 	// found).
 	//  doc: DOMDocument (optional) Searches the supplied document,
 	// or the currently-scoped window.document if omitted.
-	var node = (doc || findDoc()).documentElement.firstChild;
+	var node = (doc || document).documentElement.firstChild;
 	while (node && (node.nodeType != 1 || !/head|body/i.test(node.tagName))) {
 		node = node.nextSibling;
 	}
@@ -144,7 +137,7 @@ function parseSuffixes (name) {
 }
 
 function createLink (doc, optHref) {
-	var link = (doc || findDoc())[ce]('link');
+	var link = (doc || document)[createElement]('link');
 	link.rel = "stylesheet";
 	link.type = "text/css";
 	if (optHref) {
@@ -164,9 +157,9 @@ function createLink (doc, optHref) {
 // widgets / components that need the css to be ready.
 var testEl;
 function styleIsApplied () {
-	var doc = findDoc();
+	var doc = document;
 	if (!testEl) {
-		testEl = doc[ce]('div');
+		testEl = document[createElement]('div');
 		testEl.id = '_cssx_load_test';
 		testEl.style.cssText = 'position:absolute;top:-999px;left:-999px;';
 		doc.body.appendChild(testEl);
@@ -213,8 +206,7 @@ function ssWatcher (params, cb) {
 		cleanup(params);
         cb();
     }
-    else if (!failed) {
-        // If RequireJS didn't timeout, try again in a bit:
+    else{
         setTimeout(function () { ssWatcher(params, cb); }, params.wait);
     }
 }
@@ -233,12 +225,12 @@ function loadDetector (params, cb) {
 		}
 	}
 	loadHandler(params, cbOnce);
-	if (!useOnload) ssWatcher(params, cbOnce);
+	if (!has("event-link-onload")) ssWatcher(params, cbOnce);
 }
 
 function cleanup (params) {
 	var link = params.link;
-	link[orsc] = link[ol] = null;
+	link[onreadystatechange] = link[onload] = null;
 }
 
 /***** finally! the actual plugin *****/
@@ -248,52 +240,58 @@ var plugin = {
 		//prefix: 'css',
 
 		load: function (resourceDef, require, callback, config) {
-
-			var
-				// TODO: this is a bit weird: find a better way to extract name?
-				opts = plugin.parseSuffixes(resourceDef),
-				name = opts.shift(),
-				nameWithExt = plugin.nameWithExt(name, 'css'),
-				url = require.toUrl(nameWithExt),
-				doc = plugin.findDoc(),
-				head = plugin.findHead(doc),
-				link = plugin.createLink(doc),
-				nowait = 'nowait' in opts ? opts.nowait != 'false' : !!config.cssDeferLoad,
-				params = {
-					doc: doc,
-					head: head,
-					link: link,
-					url: url,
-					wait: config.cssWatchPeriod || 50
-				};
-
-			// all detector functions must ensure that this function only gets
-			// called once per stylesheet!
-			function loaded () {
-				// load/error handler may have executed before stylesheet is
-				// fully parsed / processed in Opera, so use setTimeout.
-				// Opera will process before the it next enters the event loop
-				// (so 0 msec is enough time).
-				setTimeout(function () { callback(link); }, 0);
+			var resources = resourceDef.split(","),
+				loadingCount = resources.length;
+			for(var i = 0; i < resources.length; i++){
+				resourceDef = resources[i];
+				var
+					// TODO: this is a bit weird: find a better way to extract name?
+					opts = plugin.parseSuffixes(resourceDef),
+					name = opts.shift(),
+					nameWithExt = plugin.nameWithExt(name, 'css'),
+					after = url,
+					url = require.toUrl(nameWithExt),
+					doc = document,
+					head = plugin.findHead(doc),
+					link = plugin.createLink(doc),
+					nowait = 'nowait' in opts ? opts.nowait != 'false' : !!config.cssDeferLoad,
+					params = {
+						doc: doc,
+						head: head,
+						link: link,
+						url: url,
+						wait: config.cssWatchPeriod || 50
+					};
+	
+				// all detector functions must ensure that this function only gets
+				// called once per stylesheet!
+				function loaded () {
+					// load/error handler may have executed before stylesheet is
+					// fully parsed / processed in Opera, so use setTimeout.
+					// Opera will process before the it next enters the event loop
+					// (so 0 msec is enough time).
+					if(--loadingCount == 0){
+						setTimeout(function () { callback(link); }, 0);
+					}
+				}
+	
+				if (nowait) {
+					callback(link);
+				}
+				else {
+					// hook up load detector(s)
+					loadDetector(params, loaded);
+				}
+	
+				// go!
+				link.href = url;
+				
+				head.insertBefore(link, after ? insertedSheets[after].nextSibling : head.firstChild);
+				insertedSheets[url] = link;
 			}
-
-			if (nowait) {
-				callback(link);
-			}
-			else {
-				// hook up load detector(s)
-				loadDetector(params, loaded);
-			}
-
-			// go!
-			link.href = url;
-			head.appendChild(link);
-
 		},
 
 		/* the following methods are public in case they're useful to other plugins */
-
-		findDoc: findDoc,
 
 		findHead: findHead,
 

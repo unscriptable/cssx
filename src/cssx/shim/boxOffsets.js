@@ -11,81 +11,29 @@
     TODO: the logic in here could be improved a bit
 
 */
-define(
-	function () {
-
-		return {
-
-			onProperty: function (processor, parseArgs) {
-				// processor: the cssx processor in context
-				// parseArgs:
-				// 		propName: String
-				// 		value: String
-				// 		selectors: String|Array
-				// 		sheet: String
-
-				var prop = parseArgs.propName,
-					value = parseArgs.propValue,
-					result;
-
-				if (prop === 'bottom' && value !== 'auto') {
-					// optimize common case in which bottom is in pixels already or is 0 (IE always uses '0px' for '0')
-					if (value.match(/px$/)) {
-						result = {
-							selectors: parseArgs.selectors,
-							propName: 'height',
-							propValue: 'expression(cssx_boxOffsets_checkBoxHeight(this, ' + parseInt(value) + '))'
-						};
-					}
-					else {
-						result = [
-							{
-								selectors: parseArgs.selectors,
-								propName: 'height',
-								propValue: 'expression(cssx_boxOffsets_checkBoxHeight(this))'
-							},
-							{
-								selectors: parseArgs.selectors,
-								propName: 'bottom',
-								propValue:'expression("' + value + '")'
-							}
-						];
-					}
-				}
-				else if (prop === 'right' && value !== 'auto') {
-					if (value.match(/px$/)) {
-						result = {
-							selectors: parseArgs.selectors,
-							propName: 'width',
-							propValue: 'expression(cssx_boxOffsets_checkBoxWidth(this, ' + parseInt(value) + '))'
-						};
-					}
-					else {
-						result = [
-							{
-								selectors: parseArgs.selectors,
-								propName: 'width',
-								propValue: 'expression(cssx_boxOffsets_checkBoxWidth(this))'
-							},
-							{
-								selectors: parseArgs.selectors,
-								propName: 'right',
-								propValue:'expression("' + value + '")'
-							}
-						];
-					}
-				}
-
-				if (result) {
-					processor.appendRule(result);
-				}
-
+define({
+	onbottom: function(prop, value){
+		if (value !== 'auto') {
+			// optimize common case in which bottom is in pixels already or is 0 (IE always uses '0px' for '0')
+			if (value.match(/px$/)) {
+				return 'height: expression(cssx_boxOffsets_checkBoxHeight(this, ' + parseInt(value) + '));';
 			}
-
-		};
-
+			else {
+				return 'height: expression(cssx_boxOffsets_checkBoxHeight(this)); bottom: expression("' + value + '");';
+			}
+		}
+	},
+	onright: function(prop, value){
+		if(value !== 'auto') {
+			if (value.match(/px$/)) {
+				return 'width: expression(cssx_boxOffsets_checkBoxWidth(this, ' + parseInt(value) + '));';
+			}
+			else {
+				return 'width: expression(cssx_boxOffsets_checkBoxWidth(this)); right: expression("' + value + '");';
+			}
+		}
 	}
-);
+});
 
 // it's easiest if these functions are global
 
