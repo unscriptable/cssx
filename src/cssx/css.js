@@ -4,7 +4,7 @@
 
 /*jslint browser:true, on:true, sub:true */
 
-(function () {
+(function (doc) {
 "use strict";
 
 /*
@@ -88,7 +88,9 @@
 		features = {
 			// true if the onload event handler works
 			// "event-link-onload" : false
-		};
+		},
+		// find the head element and set it to it's standard property if nec.
+		head = doc.head || (doc.head = doc.getElementsByTagName('head')[0]);
 
 	function has (feature) {
 		return features[feature];
@@ -118,18 +120,6 @@
 		};
 	}
 
-	function findHead (doc) {
-		// Finds the HEAD element (or the BODY element if the head wasn't
-		// found).
-		//  doc: DOMDocument (optional) Searches the supplied document,
-		// or the currently-scoped window.document if omitted.
-		var node = (doc || document).documentElement.firstChild;
-		while (node && (node.nodeType != 1 || !/head|body/i.test(node.tagName))) {
-			node = node.nextSibling;
-		}
-		return node;
-	}
-
 	function nameWithExt (name, defaultExt) {
 		return name.lastIndexOf('.') <= name.lastIndexOf('/') ?
 			name + '.' + defaultExt : name;
@@ -148,7 +138,7 @@
 	}
 
 	function createLink (doc, optHref) {
-		var link = (doc || document)[createElement]('link');
+		var link = doc[createElement]('link');
 		link.rel = "stylesheet";
 		link.type = "text/css";
 		if (optHref) {
@@ -168,7 +158,6 @@
 	// widgets / components that need the css to be ready.
 	var testEl;
 	function styleIsApplied () {
-		var doc = document;
 		if (!testEl) {
 			testEl = document[createElement]('div');
 			testEl.id = '_cssx_load_test';
@@ -262,13 +251,9 @@
 						nameWithExt = plugin.nameWithExt(name, 'css'),
 						after = url,
 						url = require.toUrl(nameWithExt),
-						doc = document,
-						head = plugin.findHead(doc),
 						link = plugin.createLink(doc),
 						nowait = 'nowait' in opts ? opts.nowait != 'false' : !!config.cssDeferLoad,
 						params = {
-							doc: doc,
-							head: head,
 							link: link,
 							url: url,
 							wait: config.cssWatchPeriod || 50
@@ -304,8 +289,6 @@
 
 			/* the following methods are public in case they're useful to other plugins */
 
-			findHead: findHead,
-
 			nameWithExt: nameWithExt,
 
 			parseSuffixes: parseSuffixes,
@@ -316,4 +299,4 @@
 
 	define(plugin);
 
-})();
+})(document);
