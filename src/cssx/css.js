@@ -110,12 +110,16 @@ function loadHandler (params, cb) {
 	};
 }
 
+function findDoc () {
+	return window['document'];
+}
+
 function findHead (doc) {
 	// Finds the HEAD element (or the BODY element if the head wasn't
 	// found).
 	//  doc: DOMDocument (optional) Searches the supplied document,
 	// or the currently-scoped window.document if omitted.
-	var node = (doc || document).documentElement.firstChild;
+	var node = (doc || findDoc()).documentElement.firstChild;
 	while (node && (node.nodeType != 1 || !/head|body/i.test(node.tagName))) {
 		node = node.nextSibling;
 	}
@@ -140,7 +144,7 @@ function parseSuffixes (name) {
 }
 
 function createLink (doc, optHref) {
-	var link = (doc || document)[ce]('link');
+	var link = (doc || findDoc())[ce]('link');
 	link.rel = "stylesheet";
 	link.type = "text/css";
 	if (optHref) {
@@ -160,9 +164,9 @@ function createLink (doc, optHref) {
 // widgets / components that need the css to be ready.
 var testEl;
 function styleIsApplied () {
-	var doc = document;
+	var doc = findDoc();
 	if (!testEl) {
-		testEl = document[ce]('div');
+		testEl = doc[ce]('div');
 		testEl.id = '_cssx_load_test';
 		testEl.style.cssText = 'position:absolute;top:-999px;left:-999px;';
 		doc.body.appendChild(testEl);
@@ -251,7 +255,7 @@ var plugin = {
 				name = opts.shift(),
 				nameWithExt = plugin.nameWithExt(name, 'css'),
 				url = require.toUrl(nameWithExt),
-				doc = document,
+				doc = plugin.findDoc(),
 				head = plugin.findHead(doc),
 				link = plugin.createLink(doc),
 				nowait = 'nowait' in opts ? opts.nowait != 'false' : !!config.cssDeferLoad,
@@ -288,6 +292,8 @@ var plugin = {
 		},
 
 		/* the following methods are public in case they're useful to other plugins */
+
+		findDoc: findDoc,
 
 		findHead: findHead,
 
