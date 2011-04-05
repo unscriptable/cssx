@@ -64,9 +64,7 @@ define(
 		function StyleSheet () {
 			this._thens = [];
 		}
-		function ExtendedStyleSheet(){
-			
-		}
+		function ExtendedStyleSheet () {}
 		StyleSheet.prototype = {
 
 			then: function (resolve, reject) {
@@ -92,30 +90,32 @@ define(
 				while (aThen = this._thens[i++]) { aThen[which] && aThen[which](arg); }
 				delete this._thens;
 			},
-			extend: function(){
+
+			extend: function () {
 				ExtendedStyleSheet.prototype = this;
 				var ess = new ExtendedStyleSheet;
 				// process each extension argument
-				for(var i = 0; i < arguments.length; i++){
+				for (var i = 0; i < arguments.length; i++) {
 					var arg = arguments[i];
-					for(var j in arg){
+					for (var j in arg) {
 						// TODO: delegate to the previous if one exists 
 						ess[j] = arg[j];
 					}
 				}
-				if(ess.cssText){
+				if (ess.cssText) {
 					ess.applyExtensions();
 				}
 				return ess;
 			},
-			applyExtensions: function(){
+
+			applyExtensions: function () {
 				var css = this.cssText;
 				// initial event
-				if(this.onSheet == "function"){
+				// FIXME: should this say typeof this.onSheet ?
+				if (this.onSheet == "function") {
 					css = arg.onsheet(css);
 				}
-				function Rule(){
-				}
+				function Rule () {}
 				Rule.prototype = {
 					eachProperty: function(onproperty){
 						return (this.children ? onproperty(0, "layout", this.children) || this.selector : this.selector) + 
@@ -127,7 +127,7 @@ define(
 				var lastRule = new Rule;
 				lastRule.css = css;
 				var styleSheet = this;
-				function onproperty(t, name, value){
+				function onproperty (t, name, value) {
 					// this is called for each CSS property
 					var propertyHandler = styleSheet["on" + name] || styleSheet.onproperty;
 					if(typeof propertyHandler == "function"){
@@ -139,11 +139,11 @@ define(
 						}
 					}
 					return t;
-				};
+				}
 				// parse the CSS, finding each rule
-				css = css.replace(/\s*(?:([^{;\s]+)\s*{)?\s*([^{}]+;)?\s*(};?)?/g, function(full, selector, properties, close){
+				css = css.replace(/\s*(?:([^{;\s]+)\s*{)?\s*([^{}]+;)?\s*(};?)?/g, function (full, selector, properties, close) {
 					// called for each rule
-					if(selector){
+					if (selector) {
 						// a selector as found, start a new rule (note this can be nested inside another selector)
 						var newRule = new Rule();
 						(lastRule.children || (lastRule.children = [])).push(newRule); // add to the parent layout 
@@ -153,11 +153,11 @@ define(
 						newRule.child = selector; // just this segment of selector
 						lastRule = newRule;
 					}
-					if(properties){
+					if (properties) {
 						// some properties were found
 						lastRule.cssText += properties;
 					}
-					if(close){
+					if (close) {
 						// rule was closed with }
 						var result = lastRule.eachProperty(onproperty);
 						if(styleSheet.onrule){
@@ -170,7 +170,7 @@ define(
 				});
 				lastRule.eachProperty(onproperty);
 				// might only need to do this if we have rendering rules
-				if(this.cssText != css){
+				if (this.cssText != css) {
 					this.cssText = css;
 					// it was modified, add the modified one
 					createStyleNode(css);
@@ -179,7 +179,7 @@ define(
 			}
 
 		};
-		for(var i in css){
+		for (var i in css) {
 			StyleSheet.prototype[i] = css[i];
 		}
 		var
@@ -215,37 +215,37 @@ define(
 //			};
 //		}
 
-		function applyCssx (processor, cssText, plugins) {
-			// attach plugin callbacks
-			var callbacks = {
-				},
-				count = 0;
-			try {
-				for (var p in callbacks) (function (cb, p) {
-					for (var i = 0; i < plugins.length; i++) {
-						if (plugins[i][p]) {
-							cb = function (processor, args) {
-								cb && cb(processor, args);
-								plugins[i][p](processor, args);
-							};
-	//						cb = chain(cb, plugins[i][p]);
-							count++;
-						}
-					}
-					if (cb !== undef) {
-						callbacks[p] = function () { cb(processor, arguments); }
-					}
-				}(callbacks[p], p));
-				if (count > 0) {
-					// TODO: parse file, applying cssx fixes as found
-					new CssTextParser(callbacks).parse(cssText);
-				}
-				processor.resolve(processor.cssText);
-			}
-			catch (ex) {
-				processor.reject(ex);
-			}
-		}
+//		function applyCssx (processor, cssText, plugins) {
+//			// attach plugin callbacks
+//			var callbacks = {
+//				},
+//				count = 0;
+//			try {
+//				for (var p in callbacks) (function (cb, p) {
+//					for (var i = 0; i < plugins.length; i++) {
+//						if (plugins[i][p]) {
+//							cb = function (processor, args) {
+//								cb && cb(processor, args);
+//								plugins[i][p](processor, args);
+//							};
+//	//						cb = chain(cb, plugins[i][p]);
+//							count++;
+//						}
+//					}
+//					if (cb !== undef) {
+//						callbacks[p] = function () { cb(processor, arguments); }
+//					}
+//				}(callbacks[p], p));
+//				if (count > 0) {
+//					// TODO: parse file, applying cssx fixes as found
+//					new CssTextParser(callbacks).parse(cssText);
+//				}
+//				processor.resolve(processor.cssText);
+//			}
+//			catch (ex) {
+//				processor.reject(ex);
+//			}
+//		}
 
 		var cssx = new StyleSheet();
 		cssx.load = function (name, require, callback, config) {
@@ -329,30 +329,33 @@ define(
 		};
 
 		return cssx;
-		function has(){
+
+		function has () {
 			return true;// for now
 		}
-		function createStyleNode(css){
+
+		function createStyleNode (css) {
 			var head = cssx.findHead();
-			if(has("dom-create-style-element")){
+			if (has("dom-create-style-element")) {
 				// we can use standard <style> element creation
 				styleSheet = document.createElement("style");
 				styleSheet.setAttribute("type", "text/css");
 				styleSheet.appendChild(document.createTextNode(css));
 				head.insertBefore(styleSheet, head.firstChild);
 			}
-			else{
-				try{
+			else {
+				try {
 					var styleSheet = document.createStyleSheet();
-				}catch(e){
+				} catch (e) {
 					// if we went past the 31 stylesheet limit in IE, we will combine all existing stylesheets into one. 
 					var styleSheets = dojox.html.getStyleSheets(); // we would only need the IE branch in this method if it was inlined for other uses
 					var cssText = "";
-					for(var i in styleSheets){
+					for (var i in styleSheets) {
 						var styleSheet = styleSheets[i];
-						if(styleSheet.href){
+						if (styleSheet.href) {
 							aggregate =+ "@import(" + styleSheet.href + ");";
-						}else{
+						}
+						 else {
 							aggregate =+ styleSheet.cssText;
 						}
 						dojo.destroy(styleSheets.owningElement);
@@ -363,6 +366,6 @@ define(
 				}
 				styleSheet.cssText = css;
 			}
-		}		
+		}
 	}
 );
