@@ -9,24 +9,11 @@
     This cssx plugin fixes lack of box offset positioning in IE6.
 
 */
-define(
-	function () {
+define({
 
-		return {
-
-			onProperty: function (processor, parseArgs, ctx) { //(/* String */ propName, /* String */ value, /* String|Array */ selectors, /* String */ ss) {
-				if (parseArgs.propName === 'opacity') {
-					var decl = 'progid:DXImageTransform.Microsoft.Alpha(Opacity=' + (value * 100) + ')',
-						rule = {
-							selectors: parseArgs.selectors,
-							propValue: decl
-						};
-					rule.propName = ctx.filterName;
-					processor.appendRule(rule);
-				}
-			}
-		};
-
+	opacity: function (prop, value, selectors) {
+		return 'filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=' + (value * 100) + ');';
 	}
-);
+
+});
 

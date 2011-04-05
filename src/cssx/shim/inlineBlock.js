@@ -9,27 +9,12 @@
     This cssx plugin fixes lack of inline-block support in IE6 and IE7
 
 */
-define(
-	function () {
+define({
 
-		return {
-
-			onProperty: function (processor, parseArgs) {
-				// processor: the cssx processor in context
-				// parseArgs:
-				// 		propName: String
-				// 		value: String
-				// 		selectors: String|Array
-				// 		sheet: String
-				if ('inline-block' === parseArgs.propValue && 'display' === parseArgs.propName) {
-					processor.appendRule([
-						{selectors: parseArgs.selectors, propName: 'display', propValue: 'inline'},
-						{selectors: parseArgs.selectors, propName: 'zoom', propValue: '1'}
-					]);
-				}
-			}
-
-		};
-
+	display: function (prop, value, selectors) {
+		if ('inline-block' === value) {
+			return 'display:inline;zoom:1;';
+		}
 	}
-);
+
+});
