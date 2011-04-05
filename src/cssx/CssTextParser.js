@@ -7,11 +7,42 @@
     license at the following url: http://www.opensource.org/licenses/afl-3.0.php.
 */
 
-define(['./common'], function (common) {
+define(function () {
 
-	var isArray = common.isArray,
-		partial = common.partial,
-		every = common.every;
+	var toString = {}.toString;
+
+	function isArray (o) {
+		return toString.call(o) == '[object Array]';
+	}
+
+	function partial (func) {
+		// pre-applies arguments to a function
+		var args = slice.call(arguments, 1);
+		return function () {
+			return func.apply(this, args.concat(arguments));
+		}
+	}
+
+	function every (a, cb) {
+		var e = true, i, len = a.length;
+		for (i = 0; i < len && e; i++) {
+			e = cb(a[i], i, a);
+		}
+		return e;
+	}
+
+	function F () {}
+	function beget (base, props) {
+		F.prototype = base;
+		var o = new F();
+		if (props) {
+			for (var p in props) {
+				o[p] = props[p];
+			}
+		}
+		delete F.prototype;
+		return o;
+	}
 
 	return function (/* Object */ cb) {
 		//  summary: A fast, flexible event-based CSS TEXT parser in under 3kB! (minified)
@@ -325,7 +356,7 @@ define(['./common'], function (common) {
 
 		function dn (ss, sd, state) {
 			// props: String|Object. The new state or an object with the overridden properties.
-			var newSd = common.beget(sd, {state: state});
+			var newSd = beget(sd, {state: state});
 			iter(ss, newSd);
 			sd.sel = [];
 			sd.pre = [];
