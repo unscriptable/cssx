@@ -5,9 +5,10 @@ define(
 		'./shim/_bundles',
 		'./shim/_tests'
 	],
-	function (require, css, common, CssTextParser, sniff, bundles, tests) {
+	function (require, sniff, bundles, tests) {
 		"use strict";
-		function getShims (require, callback) {
+		
+		function getShims (callback) {
 			// get the list of bundles
 //			require(['./shim/_bundles'], function (bundles) {
 				var bundleName;
@@ -28,7 +29,7 @@ define(
 //			});
 		}
 
-		function runFeatureTests (require, shims, callback) {
+		function runFeatureTests (shims, callback) {
 			// get all of the feature tests
 //			require(['./shim/_tests'], function (tests) {
 				// collect any that fail
@@ -50,14 +51,12 @@ define(
 //			});
 		}
 
-		function getAllShims (require, callback) {
-			getShims(require, function (bundle) {
-				runFeatureTests(require, bundle, callback);
+		function getAllShims (callback) {
+			getShims(function (bundle) {
+				runFeatureTests(bundle, callback);
 			});
 		}
 
-		getAllShims(require, function (allShims) {
-			shims = allShims;
-		});
+		return getAllShims;
 		
 });

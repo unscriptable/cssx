@@ -55,9 +55,10 @@
 
 define(
 	[
-		'./css'
+		'./css',
+		'./shims'
 	],
-	function (css) {
+	function (css, shims) {
 		"use strict";
 
 		// TODO: rewrite css.js using promises and inherit Promise from there
@@ -111,9 +112,8 @@ define(
 			applyExtensions: function () {
 				var css = this.cssText;
 				// initial event
-				// FIXME: should this say typeof this.onSheet ?
-				if (this.onSheet == "function") {
-					css = arg.onsheet(css);
+				if (typeof this.onsheet == "function") {
+					css = this.onsheet(css);
 				}
 				function Rule () {}
 				Rule.prototype = {
@@ -173,7 +173,7 @@ define(
 				if (this.cssText != css) {
 					this.cssText = css;
 					// it was modified, add the modified one
-					createStyleNode(css);
+					//createStyleNode(css);
 				}
 				return this;
 			}
@@ -247,95 +247,110 @@ define(
 //			}
 //		}
 
-		var cssx = new StyleSheet();
-		cssx.load = function (name, require, callback, config) {
+		// go get shims
+		var shimCallback = new StyleSheet(); // we really just want a promise
+		shims(function (allShims) {
+			shimCallback.resolve();
+		});
 
-			// create a promise
-			// add some useful stuff to it
-			this.cssText = '';
-			var cssx = this;
-			// tell promise to write out style element when it's resolved
-			this.then(function (cssText) {
-				// TODO: finish this
-				if (cssText) createStyleNode(cssText, this.link);
-			});
+		var plugin = {};
+		plugin.load = function (name, require, callback, config) {
 
-			// tell promise to call back to the loader
-			this.then(
-				callback.resolve ? callback.resolve : callback,
-				callback.reject ? callback.reject : undef
-			);
+			shimCallback.then(function () {
 
-//				// check for preloads
-//				if (preloading === undef) {
-//					preloading = true;
-//					var preloads = [];
-//					for (var p in activations) {
-//						if (activations.hasOwnProperty(p)) {
-//							// TODO: supply the environment parameter
-//							if (activations.load({ isBuild: false }, sniff)) {
-//								preloads.push('./plugin/' + p);
-//							}
-//						}
-//					}
-//					require(preloads, function () { preloading = false; process(); });
-//				}
-//				else {
-//					preloading = false;
-//				}
+				// create a promise
+				var cssx = new StyleSheet();
+				// add some useful stuff to it
+				cssx.cssText = '';
+				// tell promise to write out style element when it's resolved
+				cssx.then(function (cssx) {
+					// TODO: finish this
+					if (cssx.cssText) createStyleNode(cssx.cssText);
+				})
+				// tell promise to call back to the loader
+				.then(
+					callback.resolve ? callback.resolve : callback,
+					callback.reject ? callback.reject : undef
+				);
 
-			// check for special instructions (via suffixes) on the name 
-			var opts = css.parseSuffixes(name),
-				dontExecCssx = config.cssxDirectiveLimit <= 0 && listHasItem(opts.ignore, 'all');
+	//				// check for preloads
+	//				if (preloading === undef) {
+	//					preloading = true;
+	//					var preloads = [];
+	//					for (var p in activations) {
+	//						if (activations.hasOwnProperty(p)) {
+	//							// TODO: supply the environment parameter
+	//							if (activations.load({ isBuild: false }, sniff)) {
+	//								preloads.push('./plugin/' + p);
+	//							}
+	//						}
+	//					}
+	//					require(preloads, function () { preloading = false; process(); });
+	//				}
+	//				else {
+	//					preloading = false;
+	//				}
 
-			function process () {
-//					if (!preloading) {
-					if (cssx.link) {
-						if (dontExecCssx) {
-							callback(cssx);
-						}
-						else if (cssx.cssText != undef /* truthy if null or undefined, but not "" */) {
-							// TODO: get directives in file to see what rules to skip/exclude
-							//var directives = checkCssxDirectives(cssx.cssText);
-							// TODO: get list of excludes from suffixes
+				// check for special instructions (via suffixes) on the name
+				var opts = css.parseSuffixes(name),
+					dontExecCssx = config.cssxDirectiveLimit <= 0 && listHasItem(opts.ignore, 'all');
 
-								cssx.applyExtensions();
-//								var directives = [];
-//								require(directives, function () {
-							callback(cssx);
-						}
-					}
-//					}
-			}
+				function process () {
+	//					if (!preloading) {
+	//					if (cssx.link) {
+							if (dontExecCssx) {
+								cssx.resolve(cssx);
+							}
+							else { //} if (cssx.cssText != undef /* truthy if null or undefined, but not "" */) {
+								// TODO: get directives in file to see what rules to skip/exclude
+								//var directives = checkCssxDirectives(cssx.cssText);
+								// TODO: get list of excludes from suffixes
 
-			function gotLink (link) {
-				cssx.link = link;
-				process();
-			}
+									cssx.applyExtensions();
+	//								var directives = [];
+	//								require(directives, function () {
+								cssx.resolve(cssx);
+							}
+	//					}
+	//					}
+				}
 
-			function gotText (text) {
-				cssx.cssText = text;
-				process();
-			}
+				function gotLink (link) {
+					cssx.link = link;
+					cssx.resolve();
+				}
 
-			// get css file (link) via the css plugin
-			css.load(name, require, gotLink, config);
-			if (!dontExecCssx) {
-				// get the text of the file, too
-				// Is it really safe to rely on the text! plugin? That is not guaranteed to be there in all AMD environments, is it?
-				require(['text!' + name], gotText);
-			}
-			return cssx;
+				function gotText (text) {
+					cssx.cssText = text;
+					process();
+				}
+
+				var url = require['toUrl'](css.nameWithExt(name, 'css'));
+
+				if (isXDomain(url, document)) {
+					// get css file (link) via the css plugin
+					// TODO: pass a promise, not just a callback
+					css.load(name, require, gotLink, config);
+				}
+				else {
+					// get the text of the file
+					fetchText(url, gotText, cssx.reject);
+				}
+
+				return cssx;
+
+			}, callback.reject ? callback.reject : undef);
+
 		};
 
-		return cssx;
+		return plugin;
 
 		function has () {
 			return true;// for now
 		}
 
 		function createStyleNode (css) {
-			var head = cssx.findHead();
+			var head = document.head || document.getElementsByTagName('head')[0];
 			if (has("dom-create-style-element")) {
 				// we can use standard <style> element creation
 				styleSheet = document.createElement("style");
@@ -367,5 +382,71 @@ define(
 				styleSheet.cssText = css;
 			}
 		}
+
+
+		/***** xhr *****/
+
+		var progIds = ['Msxml2.XMLHTTP', 'Microsoft.XMLHTTP', 'Msxml2.XMLHTTP.4.0'];
+
+		function xhr () {
+			if (typeof XMLHttpRequest !== "undefined") {
+				// rewrite the getXhr method to always return the native implementation
+				xhr = function () { return new XMLHttpRequest(); };
+			}
+			else {
+				// keep trying progIds until we find the correct one, then rewrite the getXhr method
+				// to always return that one.
+				var noXhr = xhr = function () {
+						throw new Error("getXhr(): XMLHttpRequest not available");
+					};
+				while (progIds.length > 0 && xhr === noXhr) (function (id) {
+					try {
+						new ActiveXObject(id);
+						xhr = function () { return new ActiveXObject(id); };
+					}
+					catch (ex) {}
+				}(progIds.shift()));
+			}
+			return xhr();
+		}
+
+		function fetchText (url, callback, errback) {
+			var x = xhr();
+			x.open('GET', url, true);
+			x.onreadystatechange = function (e) {
+				if (x.readyState === 4) {
+					if (x.status < 400) {
+						callback(x.responseText);
+					}
+					else {
+						errback(new Error('fetchText() failed. status: ' + x.statusText));
+					}
+				}
+			};
+			x.send(null);
+		}
+
+		function isXDomain (url, doc) {
+			// using rules at https://developer.mozilla.org/En/Same_origin_policy_for_JavaScript
+			// Note: file:/// urls are not handled by this function!
+			// See also: http://en.wikipedia.org/wiki/Same_origin_policy
+			if (!/:\/\/|^\/\//.test(url)) {
+				// relative urls are always same domain, duh
+				return false;
+			}
+			else {
+				// same domain means same protocol, same host, same port
+				// exception: document.domain can override host (see link above)
+				var loc = doc.location,
+					parts = url.match(/([^:]+:)\/\/([^:\/]+)(?::([^\/]+)\/)?/);
+				return (
+					loc.protocol !== parts[1] ||
+					(doc.domain !== parts[2] && loc.host !== parts[2]) ||
+					loc.port !== (parts[3] || '')
+				);
+			}
+		}
+
+
 	}
 );
