@@ -9,7 +9,8 @@
 
 define(function () {
 
-	var toString = {}.toString;
+	var toString = {}.toString,
+		slice = [].slice;
 
 	function isArray (o) {
 		return toString.call(o) == '[object Array]';
