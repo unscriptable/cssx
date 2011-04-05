@@ -69,7 +69,7 @@
  *      IE 6, 7, and 8
  *      Netscape 7.2 (WTF? SRSLY!)
  * Does not work in Safari 2.x :(
- * In Chrome 8, there's no way to wait for cross-domain (XD) stylesheets.
+ * In Chrome 8+, there's no way to wait for cross-domain (XD) stylesheets.
  * See comments in the code below.
  * TODO: figure out how to be forward-compatible when browsers support HTML5's
  *  load handler without breaking IE and Opera
@@ -96,7 +96,9 @@
 		return features[feature];
 	}
 
-	// failure detection:
+	// failure detection
+	// we need to watch for onError when using RequireJS so we can shut off
+	// our setTimeouts when it encounters an error.
 	if (require['onError']) {
 		require['onError'] = (function (orig) {
 			return function () {
@@ -251,20 +253,19 @@
 					// Opera will process before the it next enters the event loop
 					// (so 0 msec is enough time).
 					if(--loadingCount == 0){
+						// TODO: move this setTimeout to loadHandler
 						setTimeout(function () { callback(link); }, 0);
 					}
 				}
 
-				for(var i = 0; i < resources.length; i++){
+				// after will become truthy once the loop executes a second time
+				for(var i = 0, after; i < resources.length; i++, after = url){
 					resourceDef = resources[i];
 					var
 						// TODO: this is a bit weird: find a better way to extract name?
 						opts = parseSuffixes(resourceDef),
 						name = opts.shift(),
-						nameWithExt = nameWithExt(name, 'css'),
-						// after will become truthy once the loop executes a second time
-						after = url,
-						url = require['toUrl'](nameWithExt),
+						url = require['toUrl'](nameWithExt(name, 'css')),
 						link = createLink(doc),
 						nowait = 'nowait' in opts ? opts['nowait'] != 'false' : !!config['cssDeferLoad'],
 						params = {
