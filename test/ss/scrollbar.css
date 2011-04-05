@@ -1,3 +1,6 @@
 .scrolltest {
+	opacity: 0.5;
+	border-style: outset;
+	border-width: -cssx-scrollbar-height -cssx-scrollbar-width -cssx-scrollbar-height -cssx-scrollbar-width;
 	border-top: -cssx-scrollbar-height solid red;
 }
