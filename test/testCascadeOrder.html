@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+<meta charset="UTF-8">
+<title>Test Cascade Order</title>
+
+<script>
+	require = {
+		paths: {
+			cssx: '../src/cssx/'
+		}
+	};
+</script>
+
+<script src="require.js"></script>
+<!--<script src="curl.js"></script>-->
+
+<script>
+
+	require(['cssx/css!testCascadeOrder1,testCascadeOrder2']);
+
+</script>
+
+
+<style>
+
+	.clazz {
+		color: red;
+	}
+	.special.clazz {
+		color: blue;
+	}
+
+</style>
+
+</head>
+<body class="dijitReset">
+
+if this text is green, then the stylesheets cascaded correctly
+
+<span class="clazz special">is this blue (good) or red (bad)?</span>
+
+</body>
+</html>

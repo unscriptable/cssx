@@ -61,7 +61,7 @@ define(
 	function (css, shims) {
 		"use strict";
 
-		// TODO: rewrite css.js using promises and inherit Promise from there
+
 		function StyleSheet () {
 			this._thens = [];
 		}
@@ -117,9 +117,16 @@ define(
 				}
 				function Rule () {}
 				Rule.prototype = {
-					eachProperty: function(onproperty){
-						return (this.children ? onproperty(0, "layout", this.children) || this.selector : this.selector) + 
-							"{" + this.cssText.replace(/\s*([^;:]+)\s*:\s*([^;]+)?/g, onproperty) + "}"; // process all the css properties
+					eachProperty: function (onproperty) {
+						var selector, css;
+						selector = (this.children ? onproperty(0, "layout", this.children) || this.selector : this.selector);
+						css = this.cssText.replace(/\s*([^;:]+)\s*:\s*([^;]+)?/g, function (full, name, value) {
+							if (styleSheet.onvalue) {
+								value = styleSheet.onvalue(value, name);
+							}
+							onproperty(full, name, value);
+						});
+						return selector +  "{" + css + "}"; // process all the css properties
 					},
 					cssText: ""
 				};
@@ -127,24 +134,25 @@ define(
 				var lastRule = new Rule;
 				lastRule.css = css;
 				var styleSheet = this;
-				function onproperty (t, name, value) {
+				function onproperty (full, name, value) {
+					// TODO: stop clobbering the onvalue result with "return full;"
 					// this is called for each CSS property
 					var propertyHandler = styleSheet["on" + name] || styleSheet.onproperty;
 					if(typeof propertyHandler == "function"){
 						// we have a CSS property handler for this property
 						var result = propertyHandler(value, lastRule, name);
 						if(typeof result == "string"){
-							// otherwise it replacement CSS
+							// replacement CSS
 							return result;
 						}
 					}
-					return t;
+					return full;
 				}
 				// parse the CSS, finding each rule
 				css = css.replace(/\s*(?:([^{;\s]+)\s*{)?\s*([^{}]+;)?\s*(};?)?/g, function (full, selector, properties, close) {
 					// called for each rule
 					if (selector) {
-						// a selector as found, start a new rule (note this can be nested inside another selector)
+						// a selector was found, start a new rule (note this can be nested inside another selector)
 						var newRule = new Rule();
 						(lastRule.children || (lastRule.children = [])).push(newRule); // add to the parent layout 
 						newRule._parent = lastRule;
@@ -184,8 +192,7 @@ define(
 		}
 		var
 //			preloading,
-			undef,
-			shims;
+			undef;
 
 //		function checkCssxDirectives (text) {
 //			// check for any cssx markers in the file
@@ -250,7 +257,40 @@ define(
 		// go get shims
 		var shimCallback = new StyleSheet(); // we really just want a promise
 		shims(function (allShims) {
+
+			var methods = StyleSheet.prototype;
+
+			// augment prototype, cascading onvalue, onproperty, and onXXX handlers
+			for (var i in allShims) {
+				for (var p in allShims[i]) (function (shimFunc, name, existing) {
+					if (name == 'onvalue') {
+						methods[name] = function (value, prop) {
+							var result = shimFunc(value, prop);
+							return existing ? existing(result, prop) : result;
+						}
+					}
+					else if (name == 'onproperty') {
+						methods[name] = function (value, rule, prop) {
+							var result = shimFunc(value, rule, prop);
+							return existing ? existing(result, rule, prop) : result;
+						}
+					}
+					else if (!existing) {
+						methods[name] = shimFunc;
+					}
+					else {
+						methods[name] = function () {
+							// last shim loaded wins
+							var result = shimFunc.apply(this, arguments);
+							return typeof result == 'string' ? result : existing.apply(this, arguments);
+						};
+					}
+				}(allShims[i][p], p, methods[p]))
+			}
+
+
 			shimCallback.resolve();
+
 		});
 
 		var plugin = {};
