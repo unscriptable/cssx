@@ -5,13 +5,15 @@
 
     LICENSE: see the LICENSE.txt file. If file is missing, this file is subject to the AFL 3.0
     license at the following url: http://www.opensource.org/licenses/afl-3.0.php.
+
+    TODO: start using has()
+
 */
 define(
 	[
-		'./stylesheet',
-		'./common'
+		'./stylesheet'
 	],
-	function (stylesheet, common) {
+	function (stylesheet) {
 
 		var _vendor,
 			_testRule,
@@ -22,8 +24,12 @@ define(
 				'Khtml': '-khtml-', // konqueror
 				'Ms': '' // IE is so b0rked (even IE 8)
 			},
-			sbSize,
-			capitalize = common.capitalize;
+			sbSize;
+
+		function capitalize (s) {
+			// summary: returns the given string, s, with the first char capitalized.
+			return (s || '').replace(/./, function (c) { return c.toUpperCase(); })
+		}
 
 		function _supported (propName, node) {
 			return typeof (node || document.documentElement).style[propName] === 'string';
@@ -41,12 +47,13 @@ define(
 				return '';
 			}
 			else {
-				common.forin(prefixes, function (camel, dash) {
-					if (_supported(dash + capitalize(propName), node)) {
+				for (var camel in prefixes) {
+					if (_supported(camel + capitalize(propName), node)) {
+						var dash = prefixes[camel];
 						getVendorPrefix = function () { return dash; };
 						return dash;
 					}
-				});
+				}
 				return null;
 			}
 		}
