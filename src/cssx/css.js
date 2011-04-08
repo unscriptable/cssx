@@ -251,18 +251,19 @@ var plugin = {
 					doc = document,
 					head = plugin.findHead(doc),
 					link = plugin.createLink(doc),
-					nowait = 'nowait' in opts ? opts.nowait != 'false' : !!config.cssDeferLoad,
+					nowait = 'nowait' in opts ? opts.nowait != 'false' : config && config.cssDeferLoad,
 					params = {
 						doc: doc,
 						head: head,
 						link: link,
 						url: url,
-						wait: config.cssWatchPeriod || 50
-					};
+						wait: (config && config.cssWatchPeriod) || 50
+					},
 	
 				// all detector functions must ensure that this function only gets
 				// called once per stylesheet!
-				function loaded () {
+					loaded = 
+				function () {
 					// load/error handler may have executed before stylesheet is
 					// fully parsed / processed in Opera, so use setTimeout.
 					// Opera will process before the it next enters the event loop
