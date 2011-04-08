@@ -45,7 +45,7 @@ define(function () {
 		return o;
 	}
 
-	return function (/* Object */ cb) {
+	return function (/* Object */ cb, /* Object? */ ctx) {
 		//  summary: A fast, flexible event-based CSS TEXT parser in under 3kB! (minified)
 		//      See also the cssx.cssDomParser!
 		//  cb: Object
@@ -119,7 +119,6 @@ define(function () {
 
 		var
 			// context in which to execute callbacks
-			ctx,
 			// flag to detect if user has stopped (c is short for "continue")
 			c = true,
 			// map of the top-level state machine transition functions.
@@ -150,7 +149,7 @@ define(function () {
 			//  w: String|Array - The raw text of the sheet to parse or a list of several sheets.
 			//  return Boolean. true == parse was not stopped; false == it was stopped.
 			c = true;
-			ctx = cb.context || this;
+			ctx = ctx || cb.context || this;
 			// If mediaTypes were supplied...
 			if (cb.mediaTypes)
 				// ...recreate the media types regex.
