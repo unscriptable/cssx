@@ -274,9 +274,6 @@ define(function () {
 					// TODO: if no selectors were found, skip this and log a debug message?
 					sd.sel.push(s);
 					var sels = cb.dontSplit ? sd.sel.join(',') : sd.sel;
-					// call onRule
-					if (cb.onRule)
-						sd.stop = cb.onRule.call(ctx, sels, ss) === false;
 					// call onSelector
 					if (c && !sd.stop && cb.onSelector) {
 						every(isArray(sels) ? sels : [sels], function (sel) {
@@ -285,6 +282,9 @@ define(function () {
 							return cb.onSelector.call(ctx, sel, ss) !== false && c;
 						});
 					}
+					// call onRule
+					if (cb.onRule)
+						sd.stop = cb.onRule.call(ctx, sels, ss) === false;
 					// Dig into declarations.
 					dn(ss, sd, 'decl');
 					break;
