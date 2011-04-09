@@ -1,0 +1,12 @@
+.parent > .child {
+	color: green;
+}
+
+.parent > .parent > .child {
+	color: red;
+}
+
+.combo.selector {
+	background-color: purple;
+	color: yellow;
+}

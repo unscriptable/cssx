@@ -1,0 +1,49 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+<meta charset="UTF-8">
+<title>Run Box Tests</title>
+
+<script>
+	require = {
+		paths: {
+			cssx: '../src/cssx/'
+		}
+	};
+</script>
+
+<script src="require.js"></script>
+<!--<script src="curl.js"></script>-->
+
+<script>
+//var now = new Date();
+//console.profile();
+
+require(['cssx/cssx!ss/blocks.css'], function (cssx) {
+
+	//console.profileEnd();
+	//console.log(new Date() - now);
+
+});
+
+</script>
+
+</head>
+<body>
+
+<div class="box inline-block-test">this box should be an inline-block</div>
+<div class="box inline-block-test">this box should be an inline-block</div>
+<div class="box inline-block-test">this box should be an inline-block</div>
+<div class="box inline-block-test">this box should be an inline-block</div>
+
+<b class="">this element should be inline</b>
+
+<div class="box box-offset-container">
+	<div class="box box-offset-test">this box should be 5px offset from it's parent on each side</div>
+</div>
+
+<div class="box max-height-test">this box has a maximum height blah blah blah blah blah blah blah blah blah blah </div>
+<div class="box min-height-test">this box has a minimum height</div>
+
+</body>
+</html>

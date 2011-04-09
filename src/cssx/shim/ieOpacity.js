@@ -1,5 +1,5 @@
 /*
-    cssx/shim/opacity
+    cssx/shim/ieOpacity
     (c) copyright 2010, unscriptable.com
     author: john
 
@@ -12,7 +12,7 @@
 define({
 
 	opacity: function (prop, value, selectors) {
-		return 'filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=' + (value * 100) + ');';
+		return 'filter:progid:DXImageTransform.Microsoft.Alpha(Opacity=' + (value * 100) + ');zoom:1;';
 	}
 
 });

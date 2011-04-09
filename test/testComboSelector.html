@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+<meta charset="UTF-8">
+<title>Run .combo.selector Unit Tests</title>
+
+<script>
+	require = {
+		paths: {
+			cssx: '../src/cssx/'
+		}
+	};
+</script>
+
+<script src="require.js"></script>
+<!--<script src="curl.js"></script>-->
+
+<script>
+var now = new Date();
+require(['cssx/cssx!ss/selectors.css'], function (cssx) {
+	//alert(new Date() - now);
+});
+
+</script>
+
+</head>
+<body>
+
+<p class="combo selector">if .combo.selector works, this is purple!</p>
+
+</body>
+</html>

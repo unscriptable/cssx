@@ -1,0 +1,8 @@
+.special:hover {
+	font-style: italic;
+}
+
+P:hover .inner {
+	font-style: italic;
+}
+/* comment test */

@@ -47,7 +47,7 @@ define(
 
 		return {
 
-			value: function (prop, value, selectors) {
+			onValue: function (prop, value, selectors) {
 				return value.replace(scrollbarPropRx, replaceScrollbarDim);
 			}
 

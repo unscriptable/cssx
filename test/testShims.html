@@ -17,10 +17,8 @@
 
 <script>
 var now = new Date();
-//console.profile();
-require(['cssx/cssx!ss/scrollbar.css'], function (cssx) {
-	//console.profileEnd();
-	console.log(new Date() - now);
+require(['cssx/cssx!ss/scrollbar.css', 'cssx/cssx!ss/selectors.css', 'cssx/cssx!ss/hover.css'], function (cssx) {
+	//alert(new Date() - now);
 });
 
 </script>
@@ -29,6 +27,26 @@ require(['cssx/cssx!ss/scrollbar.css'], function (cssx) {
 <body>
 
 <div class="scrolltest">this box has a border that is the same thickness as a scrollbar</div>
+
+<ul class="parent">
+
+	<li class="child">.parent > .child (should be green)</li>
+
+	<li><span class="child">.parent > li > .child (should not be green)</span></li>
+
+</ul>
+
+<ul class="parent">
+
+	<li class="child">.parent > .child (should be green)</li>
+
+	<li class="parent"><span class="child">.parent > .parent > .child (should be red)</span></li>
+
+</ul>
+
+<p class="special">park your mouse over me and i should get slanty</p>
+
+<p class="combo selector">if .combo.selector works, this is purple! <span class="inner">(hover and I'll get slanty, too)</span></p>
 
 </body>
 </html>
