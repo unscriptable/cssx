@@ -241,7 +241,7 @@ var plugin = {
 
 		//prefix: 'css',
 
-			'load': function (resourceDef, require, callback, config) {
+		'load': function (resourceDef, require, callback, config) {
 				var resources = resourceDef.split(","),
 					loadingCount = resources.length;
 
@@ -252,42 +252,45 @@ var plugin = {
 				// fully parsed / processed in Opera, so use setTimeout.
 				// Opera will process before the it next enters the event loop
 				// (so 0 msec is enough time).
-					if(--loadingCount == 0){
-						// TODO: move this setTimeout to loadHandler
-				setTimeout(function () { callback(link); }, 0);
+				if(--loadingCount == 0){
+					// TODO: move this setTimeout to loadHandler
+					setTimeout(function () { callback(link); }, 0);
+				}
 			}
+
+			// after will become truthy once the loop executes a second time
+			for (var i = 0, after; i < resources.length; i++, after = url) {
+
+				resourceDef = resources[i];
+
+				var
+					// TODO: this is a bit weird: find a better way to extract name?
+					opts = parseSuffixes(resourceDef),
+					name = opts.shift(),
+					url = require['toUrl'](nameWithExt(name, 'css')),
+					link = createLink(doc),
+					nowait = 'nowait' in opts ? opts['nowait'] != 'false' : !!config['cssDeferLoad'],
+					params = {
+						link: link,
+						url: url,
+						wait: config['cssWatchPeriod'] || 50
+					};
+
+				if (nowait) {
+					callback(link);
+				}
+				else {
+					// hook up load detector(s)
+					loadDetector(params, loaded);
 				}
 
-				// after will become truthy once the loop executes a second time
-				for(var i = 0, after; i < resources.length; i++, after = url){
-					resourceDef = resources[i];
-					var
-						// TODO: this is a bit weird: find a better way to extract name?
-						opts = parseSuffixes(resourceDef),
-						name = opts.shift(),
-						url = require['toUrl'](nameWithExt(name, 'css')),
-						link = createLink(doc),
-						nowait = 'nowait' in opts ? opts['nowait'] != 'false' : !!config['cssDeferLoad'],
-						params = {
-							link: link,
-							url: url,
-							wait: config['cssWatchPeriod'] || 50
-						};
+				// go!
+				link.href = url;
 
-			if (nowait) {
-				callback(link);
-			}
-			else {
-				// hook up load detector(s)
-				loadDetector(params, loaded);
+				head.insertBefore(link, after ? insertedSheets[after].nextSibling : head.firstChild);
+				insertedSheets[url] = link;
 			}
 
-			// go!
-			link.href = url;
-
-					head.insertBefore(link, after ? insertedSheets[after].nextSibling : head.firstChild);
-					insertedSheets[url] = link;
-				}
 		},
 
 		/* the following methods are public in case they're useful to other plugins */
