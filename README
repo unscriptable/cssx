@@ -18,7 +18,7 @@ The following shims modules are working:
 What's not working:
  * @imported stylesheets are not processed
  * the UA sniffs to load bundles are not complete
- * media types are fixed at al, screen, and handheld
+ * media types are fixed at "all", "screen", and "handheld"
 
 Next:
  * process @imports
