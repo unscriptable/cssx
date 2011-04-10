@@ -12,10 +12,10 @@
 
 	var
 		comboCheckers = [],
-		selectors,
+		replacements,
 		id = 0,
 		comboDetectorRx = /\.\w+\./g,
-		comboFinderRx = /(.*)((?:\.\w+){2,})/g,
+		comboFinderRx = /(.*)((?:\.[\w\-]+){2,})/g,
 		comboSplitterRx = /\b(\w|-)+\b/g,
 		ruleTemplate = '.${0}{${1}:expression(cssx_combo_selector_check(this,"${2}",${3}));}\n';
 
@@ -24,7 +24,7 @@
     }
 
 	var replaceRx = /\$\{(\d)\}/g;
-	function replace (string, values) {
+	function templatize (string, values) {
 		return string.replace(replaceRx, function (match, pos) {
 			return values[pos];
 		});
@@ -84,14 +84,20 @@
 
 			if (comboDetectorRx.test(selector)) {
 
-				// create unique key for this ancestry
-				var key = createKey();
+				replacements = replacements || [];
 
-				// save selector
-				selectors = selectors || [];
-				selectors.push({ selector: selector, key: key });
+				selector = selector.replace(comboFinderRx, function (match, other, combo) {
+					var key = createKey(),
+						newPart = other + '.' + key ;
+					replacements.push({
+						other: other,
+						combo: combo,
+						key: key
+					});
+					return newPart;
+				});
 
-				return '.' + key;
+				return selector;
 			}
 
 		},
@@ -99,38 +105,46 @@
 		onEndRule: function () {
 			var i, j, parts, part, checkerId, baseKey, baseRule = '', rules = '';
 
-			if (selectors && selectors.length > 0) {
+			if (replacements) {
 
-				for (i = 0; i < selectors.length; i++) {
+				for (i = 0; i < replacements.length; i++) {
 
 					// TODO: bail if any blanks were found in classes
-					parts = parseCombos(selectors[i].selector);
-					baseKey = selectors[i].key;
+					//parts = parseCombos(replacements[i].selector);
+					part = replacements[i];
+					baseKey = part.key;
+					baseRule += part.other;
+					checkerId = createComboChecker(part.combo);
+					part.combo.replace(comboSplitterRx, function (className) {
+						rules += templatize(ruleTemplate, [className, part.key, baseKey, checkerId]);
+						return className; // minimizes memory allocation work
+					});
+					baseRule += '.' + part.key + ',';
 
-					for (j = parts.length - 1; j > 0; j--) {
-
-						part = parts[j];
-
-						if (part.other) {
-							baseRule += part.other;
-						}
-						else {
-							part.key = createKey();
-							checkerId = createComboChecker(part.combo);
-							part.combo.replace(comboSplitterRx, function (className) {
-								rules += replace(ruleTemplate, [className, part.key, baseKey, checkerId]);
-								return className; // minimizes memory allocation work
-							});
-							baseRule += '.' + part.key + ',';
-						}
-					}
+//					for (j = parts.length - 1; j > 0; j--) {
+//
+//						part = parts[j];
+//
+//						if (part.other) {
+//							baseRule += part.other;
+//						}
+//						else {
+//							part.key = createKey();
+//							checkerId = createComboChecker(part.combo);
+//							part.combo.replace(comboSplitterRx, function (className) {
+//								rules += templatize(ruleTemplate, [className, part.key, baseKey, checkerId]);
+//								return className; // minimizes memory allocation work
+//							});
+//							baseRule += '.' + part.key + ',';
+//						}
+//					}
 				}
 
 				baseRule += '\n' + rules;
 			}
 
-			// clean up classes
-			selectors = null;
+			// clean up replacements
+			replacements = null;
 
 			return baseRule;
 
@@ -138,6 +152,7 @@
 
 	});
 
+	// TODO: remove this and replace it with something simpler
 	function toggleClass (node, className, add) {
 		var replaced, newClassName, replaceRx = new RegExp('\\s?' + className + '\\s?');
 		newClassName = node.className.replace(replaceRx, function (match) {
