@@ -64,6 +64,13 @@ define(
 
 		var
 			undef,
+			head = document.head || document.getElementsByTagName('head')[0],
+			// this actually tests for absolute urls and root-relative urls
+			// they're both non-relative
+			nonRelUrlRe = /^\/|^[^:]*:\/\//,
+			// Note: tis will fail if there are parentheses in the url
+			findUrlRx = /(?:url\()[^\)]*(?:\))/g,
+			stripUrlRx = /url\(["']?|["']?\)/g,
 			activeShims = {};
 
 		function Promise () {
@@ -140,7 +147,13 @@ define(
 
 		CssProcessor.prototype.onProperty = function (name, value, selectors) {
 			// process any callbacks for custom property names or catch-all value callbacks
-			var func, result, output = '';
+			var result, output = '';
+
+			// fix any urls.
+			var basePath = this.basePath;
+			value = value.replace(findUrlRx, function (url) {
+				return translateUrl(url, basePath);
+			});
 
 			// process the value through any onValue processors
 			each(this.processors.onValue, function (processor) {
@@ -178,7 +191,7 @@ define(
 			each(this.processors.onEndRule, function (processor) {
 				result = processor(selectors);
 				if (result) {
-					self.output += result;
+					self.output += result + '\n';
 				}
 			});
 		};
@@ -226,47 +239,61 @@ define(
 
 		});
 
-		var hasFeatures = {
-			'dom-create-stylesheet': !!document.createStyleSheet
-		};
-
 		function has (feature) {
 			return hasFeatures[feature];
 		}
 
-		function createStyleNode (css) {
-			var head = document.head || document.getElementsByTagName('head')[0];
+		function translateUrl (url, parentPath) {
+			var path = url.replace(stripUrlRx, '');
+			// if this is a relative url
+			if (!nonRelUrlRe.test(path)) {
+				// append path onto it
+				path = parentPath + path;
+			}
+			return 'url("' + path + '")';
+		}
+
+		function createStyleNode () {
 			if (has('dom-create-stylesheet')) {
-				try {
-					var styleSheet = document.createStyleSheet();
-				} catch (e) {
-//					// if we went past the 31 stylesheet limit in IE, we will combine all existing stylesheets into one.
-//					var styleSheets = dojox.html.getStyleSheets(); // we would only need the IE branch in this method if it was inlined for other uses
-//					var cssText = "";
-//					for (var i in styleSheets) {
-//						var styleSheet = styleSheets[i];
-//						if (styleSheet.href) {
-//							aggregate =+ "@import(" + styleSheet.href + ");";
-//						}
-//						 else {
-//							aggregate =+ styleSheet.cssText;
-//						}
-//						dojo.destroy(styleSheets.owningElement);
-//					}
-//					var aggregate = dojox.html.getDynamicStyleSheet("_aggregate");
-//					aggregate.cssText = cssText;
-//					return dojox.html.getDynamicStyleSheet(styleSheetName);
-				}
-				styleSheet.cssText = css;
+				return document.createStyleSheet();
 			}
 			else {
 				// we can use standard <style> element creation
 				var node = document.createElement("style");
 				node.setAttribute("type", "text/css");
-				node.appendChild(document.createTextNode(css));
 				head.insertBefore(node, head.firstChild);
+				return node;
 			}
 		}
+
+		var currentSheet;
+		function insertCss (css) {
+			if (!currentSheet) {
+				currentSheet = createStyleNode();
+			}
+			if (has('stylesheet-cssText')) {
+				// IE mangles cssText if you try to read it out, so we have
+				// to save a copy of the originals in cssxSheets;
+				var sheets = currentSheet.cssxSheets = currentSheet.cssxSheets || [];
+				sheets.push(css);
+				currentSheet.cssText = sheets.join('\n');
+				// this is a lame attempt to avoid 4000-rule limit of IE
+				if (currentSheet.rules.length > 3000) {
+					currentSheet = createStyleNode();
+				}
+			}
+			else {
+				currentSheet.appendChild(document.createTextNode(css));
+			}
+		}
+
+		var hasFeatures = {
+			'dom-create-stylesheet': !!document.createStyleSheet,
+			'stylesheet-cssText': document.createStyleSheet &&
+				(currentSheet = document.createStyleSheet()) &&
+				('cssText' in currentSheet)
+		};
+
 
 
 		/***** xhr *****/
@@ -359,19 +386,12 @@ define(
 
 					// add some useful stuff to it
 					processor.input = '';
-//					processor.appendRule = function (objOrArray) {
-//						var rules = [].concat(objOrArray),
-//							rule, i = 0;
-//						while (rule = rules[i++]) {
-//							this.output += rule;
-//						}
-//					};
+					processor.basePath = name.substr(0, name.lastIndexOf('/') + 1);
 
 					// tell promise to write out style element when it's resolved
 					processor.then(function (cssText) {
-//document.body.appendChild(document.createTextNode(cssText));
-						if (cssText) createStyleNode(cssText);
-//document.body.appendChild(document.createTextNode('***** ' + document.styleSheets[document.styleSheets.length - 1].cssText));
+alert(cssText);
+						if (cssText) insertCss(cssText);
 					})
 					// tell promise to call back to the loader
 					.then(
