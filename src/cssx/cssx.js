@@ -171,13 +171,21 @@ define(
 			});
 		};
 
+		CssProcessor.prototype.onAtRule = function (keyword, data, hasBlock) {
+			// just reproduce it
+			this.output += '@' + keyword + ' ' + data + (hasBlock ? '{' : ';');
+		};
+
 		CssProcessor.prototype.onImport = function (url, media) {
-			var newUrl;
-			if (/\b(screen|all|handheld)\b/i.test(media)) {
-				newUrl = translateUrl(url, this.basePath);
-				// TODO: loading of the imported sheet must be chained!
-				load(url, require, function () {}, {});
-			}
+			// for now, just reproduce it
+			this.output += '@media url("' + translateUrl(url, this.basePath) + '") ' + media + ';\n';
+			// TODO: get @import processing working
+			//var newUrl;
+			//if (/\b(screen|all|handheld)\b/i.test(media)) {
+			//	newUrl = translateUrl(url, this.basePath);
+			//	// TODO: loading of the imported sheet must be chained!
+			//	load(url, require, function () {}, {});
+			//}
 		};
 
 		function each (array, callback) {
