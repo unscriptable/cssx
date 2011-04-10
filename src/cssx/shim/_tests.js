@@ -85,15 +85,6 @@ define({
 		name: './shim/hover'
 	},
 
-	childSelector: {
-		test: function (env, sniff) {
-			// Note: this is an inference test. 
-			// FIXME: do a true test?
-			return sniff.cssProp('maxWidth');
-		},
-		name: './shim/childSelector'
-	},
-
 	comboSelector: {
 		test: function (env, sniff) {
 			// Note: this is an inference test.
@@ -101,6 +92,18 @@ define({
 			return sniff.cssProp('maxWidth');
 		},
 		name: './shim/comboSelector'
+	},
+
+	// Note: child selector shim needs to run after other shims because it
+	// removes the selectors entirely and replaces them with a new one.
+	// Fix this somehow?
+	childSelector: {
+		test: function (env, sniff) {
+			// Note: this is an inference test.
+			// FIXME: do a true test?
+			return sniff.cssProp('maxWidth');
+		},
+		name: './shim/childSelector'
 	}
 
 });
