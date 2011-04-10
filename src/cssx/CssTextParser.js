@@ -155,7 +155,7 @@ define(function () {
 				// ...recreate the media types regex.
 				rxMTypes = new RegExp('\b(?:' + cb.mediaTypes.join('|') + ')\b', 'i');
 			else
-				rxMTypes = /\b(?:screen|all)\b/i;
+				rxMTypes = /\b(?:screen|all|handheld)\b/i;
 			if (!isArray(w)) w = [w];
 			every(w, function (ss) {
 				if (!cb.onSheet || cb.onSheet.call(ctx, ss) !== false && c) {
