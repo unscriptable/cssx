@@ -70,7 +70,7 @@ define(
 			nonRelUrlRe = /^\/|^[^:]*:\/\//,
 			// Note: tis will fail if there are parentheses in the url
 			findUrlRx = /(?:url\()[^\)]*(?:\))/g,
-			stripUrlRx = /url\(["']?|["']?\)/g,
+			stripUrlRx = /url\(\s*["']?|["']?\s*\)/g,
 			activeShims = {};
 
 		function Promise () {
@@ -194,6 +194,10 @@ define(
 					self.output += result + '\n';
 				}
 			});
+		};
+
+		CssProcessor.prototype.onImport = function (url, media) {
+			
 		};
 
 		function each (array, callback) {
