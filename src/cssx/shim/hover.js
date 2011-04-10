@@ -13,7 +13,7 @@
 		parseHoverRx = /([^\s])+:hover(?=$|\s)/,
 		// Note: this is safe if we assume nobody will create their own
 		// classes that include cssx-hover-pseudo within them
-		removeReplacementRx = /cssx-hover-pseudo/g;
+		removeReplacementRx = /\s?cssx-hover-pseudo-\d+/g;
 
 	function createKey () {
         return 'cssx-hover-pseudo-' + id++;
@@ -63,7 +63,6 @@
 
 				replacements = replacements || [];
 
-
 				// parse selector
 				selector = selector.replace(parseHoverRx, function (match) {
 					// create unique key for this :hover replacement
@@ -102,7 +101,7 @@
 
 				replacements = null;
 			}
-//alert('output = ' + output);
+
 			return output;
 		}
 
