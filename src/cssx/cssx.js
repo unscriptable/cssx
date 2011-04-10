@@ -390,7 +390,6 @@ define(
 
 					// tell promise to write out style element when it's resolved
 					processor.then(function (cssText) {
-alert(cssText);
 						if (cssText) insertCss(cssText);
 					})
 					// tell promise to call back to the loader
