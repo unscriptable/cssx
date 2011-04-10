@@ -86,6 +86,7 @@
 
 	});
 
+	// TODO: remove this and replace it with something simpler
 	function toggleClass (node, className, add) {
 		var replaced, newClassName, replaceRx = new RegExp('\s?' + className + '\s?');
 		newClassName = node.className.replace(replaceRx, function (match) {
