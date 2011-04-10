@@ -17,9 +17,26 @@
 
 <script>
 var now = new Date();
-require(['cssx/cssx!ss/scrollbar.css', 'cssx/cssx!ss/selectors.css', 'cssx/cssx!ss/hover.css'], function (cssx) {
-	//alert(new Date() - now);
-});
+require(
+	[
+		'cssx/cssx!ss/scrollbar.css',
+		'cssx/cssx!ss/hover.css',
+		'cssx/cssx!ss/selectors.css',
+		'cssx/cssx!ss/image.css'
+	],
+	function () {
+
+		// debug code:
+		var finalSheet = document.styleSheets[document.styleSheets.length - 1],
+			cssxSheets = finalSheet.cssxSheets;
+		if (cssxSheets) {
+			var node = document.createElement('div');
+			node.innerHTML = cssxSheets.join('\n').replace(/\n/g, '<br/>');
+			document.body.appendChild(node);
+		}
+
+	}
+);
 
 </script>
 
@@ -34,6 +51,8 @@ require(['cssx/cssx!ss/scrollbar.css', 'cssx/cssx!ss/selectors.css', 'cssx/cssx!
 
 	<li><span class="child">.parent > li > .child (should not be green)</span></li>
 
+	<li class="image-left">if this has an image on the left, then url translation works</li>
+
 </ul>
 
 <ul class="parent">
@@ -46,7 +65,7 @@ require(['cssx/cssx!ss/scrollbar.css', 'cssx/cssx!ss/selectors.css', 'cssx/cssx!
 
 <p class="special">park your mouse over me and i should get slanty</p>
 
-<p class="combo selector">if .combo.selector works, this is purple! <span class="inner">(hover and I'll get slanty, too)</span></p>
+<p class="combo selector">if .combo.selector works, this is yellow on purple! <span class="inner">(hover and I'll get slanty, too)</span></p>
 
 </body>
 </html>
