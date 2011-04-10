@@ -1,6 +1,6 @@
 cssx (Cujo Style Sheet eXtender)
 
-current version: 0.2
+current version: 0.1
 Note: all but the css.js plugin is in flux right now. You may use
 the css.js file safely. It now works with Chrome 8+.
 
