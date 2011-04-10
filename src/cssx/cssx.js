@@ -18,38 +18,13 @@
  * set it to "all" to ignore all plugin names found in css files.
  * Use the !inspect loader suffix or directive to override cssxIgnore.
  *
- * TODO: remove preloads
- * cssxPreload: Array
- * Set cssxPreload to a list of names of plugins that should be loaded
- * before processing any css files. Unless overridden by an !ignore
- * loader suffix or directive in a css file, all css files
- * will be scanned by these plugins.
- *
- * TODO: remove cssxAuto
- * cssxAuto: Boolean, default = true
- * Set cssxAuto to false to prevent cssx from attempting to
- * automatically download and apply plugins that are discovered
- * in css rules.  For instance, if a -cssx-scrollbar-width property is
- * found in a rule, cssx will normally load the "scrollbar" plugin
- * and create a rule to supply the correct value. If cssxAuto is
- * false, cssx will ignore -cssx-scrollbar-width unless the plugin was
- * preloaded or specified in a directive.
- *
- * cssxDirectiveLimit: Number, default = 200
- * Set cssxDirectiveLimit to the number of characters into a css file
- * to look for cssx directives before giving up.  Set this to zero
- * if you don't want cssx to scan for directives at all.  Set it to
- * a very high number if you're concatenating css files together!
- * Override this via the !limit loader suffix.
- *
  * Suffixes can be applied to resources when listed as a dependency.
  * e.g. define(['cssx/cssx!myModule!ignore=ieLayout'], callback);
  *
  * Available suffixes:
  * !ignore: a comma-separated list of cssx plugins to ignore
- * TODO: remove: !inspect: a comma-separated list of cssx plugins to run
- * !scanlimit: the number of characters into the css file to search
- * 		for cssx directives
+ *
+ * 	TODO: loading of the imported sheet must be chained!
  *
  */
 
@@ -68,7 +43,7 @@ define(
 			// this actually tests for absolute urls and root-relative urls
 			// they're both non-relative
 			nonRelUrlRe = /^\/|^[^:]*:\/\//,
-			// Note: tis will fail if there are parentheses in the url
+			// Note: this will fail if there are parentheses in the url
 			findUrlRx = /(?:url\()[^\)]*(?:\))/g,
 			stripUrlRx = /url\(\s*["']?|["']?\s*\)/g,
 			activeShims = {};
@@ -197,7 +172,12 @@ define(
 		};
 
 		CssProcessor.prototype.onImport = function (url, media) {
-			
+			var newUrl;
+			if (/\b(screen|all|handheld)\b/i.test(media)) {
+				newUrl = translateUrl(url, this.basePath);
+				// TODO: loading of the imported sheet must be chained!
+				load(url, require, function () {}, {});
+			}
 		};
 
 		function each (array, callback) {
@@ -367,23 +347,18 @@ define(
 		}
 
 
-		/***** the plugin *****/
-		
-		return {
+		function load (name, require, callback, config) {
 
-			version: '0.2',
+			function fail (ex) {
+				if (callback.reject) callback.reject(ex); else throw ex;
+			}
 
-			load: function (name, require, callback, config) {
+			function resolve (val) {
+				callback.resolve ? callback.resolve() : callback();
+			}
 
-				function fail (ex) {
-					if (callback.reject) callback.reject(ex); else throw ex;
-				}
-
-				function resolve (val) {
-					callback.resolve ? callback.resolve() : callback();
-				}
-
-				shimCallback.then(function () {
+			shimCallback.then(
+				function () {
 
 					// create a promise
 					var processor = new CssProcessor(activeShims);
@@ -447,9 +422,18 @@ define(
 
 				},
 				fail
-				);
+			);
 
-			}
+		}
+
+		/***** the plugin *****/
+		
+		return {
+
+			version: '0.2',
+
+			load: load
+
 		};
 
 	}
