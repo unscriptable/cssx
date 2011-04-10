@@ -1,8 +1,31 @@
 cssx (Cujo Style Sheet eXtender)
 
-current version: 0.1
+current version: 0.2
 Note: all but the css.js plugin is in flux right now. You may use
-the css.js file safely. It now works with Chrome 10.
+the css.js file safely. It now works with Chrome 8+.
+
+The following shims modules are working:
+ * boxOffsets (IE6)
+ * childSelector (.parent > .chid) (IE6)
+ * comboSelector (.class1.class2) (IE6)
+ * hover (.anything:hover) (IE6)
+ * ieOpacity (IE6-8)
+ * opacity (makes future css3 "opacity" work) (all non-IE browsers)
+ * inlineBlock (IE6 and 7)
+ * minmax (min-width, max-width, min-height, max-height) (IE6)
+ * scrollbar (adds a scrollbar-width unit of measurement) (all browsers)
+
+What's not working:
+ * @imported stylesheets are not processed
+ * the UA sniffs to load bundles are not complete
+ * media types are fixed at al, screen, and handheld
+
+Next:
+ * process @imports
+ * more shims: [attribute] selector, transtions,
+ 	:first-child, :last-child, box-sizing
+ * Kris Zyp's Xstyle extensions need to be added
+ * try to get Kris Zyp's fast-parse mechanism working
 
 ----------------------------------------
 
