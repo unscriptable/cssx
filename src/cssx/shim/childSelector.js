@@ -10,6 +10,7 @@
 (function (global, doc) {
 
 	var ancestries, id = 0,
+		ancestrySplitterRx = /\s*>\s*/g,
 		rightTemplate = '${0}{${1}:expression(cssx_child_selector_right(this,"${1}","${2}"));}\n',
 		levelTemplate = '${0}{${1}:expression(cssx_child_selector(this,"${1}","${2}"));}\n',
 		leftTemplate = '${0}{${1}:${1}}';
@@ -51,7 +52,7 @@
 				for (i = 0; i < ancestries.length; i++) {
 
 					// TODO: bail if any blanks were found in ancestry
-					ancestry = ancestries[i].selector.split(/\s*>\s*/g);
+					ancestry = ancestries[i].selector.split(ancestrySplitterRx);
 					childKey = ancestries[i].key;
 
 					for (j = ancestry.length - 1; j > 0; j--) {
