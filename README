@@ -14,16 +14,16 @@ The following shims modules are working:
  * inlineBlock (IE6 and 7)
  * minmax (min-width, max-width, min-height, max-height) (IE6)
  * scrollbar (adds a scrollbar-width unit of measurement) (all browsers)
+ * @imported stylesheets are now processed!
 
 What's not working:
- * @imported stylesheets are not processed
+ * attribute selectors (e.g. input[type="checkbox"])
  * the UA sniffs to load bundles are not complete
  * media types are fixed at "all", "screen", and "handheld"
 
 Next:
- * process @imports
- * more shims: [attribute] selector, transtions,
- 	:first-child, :last-child, box-sizing
+ * more shims: transtions, box-sizing,
+ 	:first-child, :last-child
  * Kris Zyp's Xstyle extensions need to be added
  * try to get Kris Zyp's fast-parse mechanism working
 
