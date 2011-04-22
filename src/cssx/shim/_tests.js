@@ -85,6 +85,16 @@ define({
 		name: './shim/hover'
 	},
 
+	// TODO: get attrSelector working
+	//attrSelector: {
+	//	test: function (env, sniff) {
+	//		// Note: this is an inference test.
+	//		// FIXME: do a true test?
+	//		return sniff.cssProp('maxWidth');
+	//	},
+	//	name: './shim/attrSelector'
+	//},
+
 	comboSelector: {
 		test: function (env, sniff) {
 			// Note: this is an inference test.

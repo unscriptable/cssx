@@ -81,12 +81,12 @@ var
 		onreadystatechange = 'onreadystatechange',
 		onload = 'onload',
 		createElement = 'createElement',
-	// failed is true if RequireJS threw an exception
-	failed = false,
+		// failed is true if RequireJS threw an exception
+		failed = false,
 		undef,
 		insertedSheets = {},
 		features = {
-// true if the onload event handler works
+			// true if the onload event handler works
 			// "event-link-onload" : false
 		},
 		// find the head element and set it to it's standard property if nec.
@@ -259,7 +259,7 @@ var plugin = {
 			}
 
 			// after will become truthy once the loop executes a second time
-			for (var i = 0, after; i < resources.length; i++, after = url) {
+			for (var i = resources.length - 1, after; i >= 0; i--, after = url) {
 
 				resourceDef = resources[i];
 
@@ -287,7 +287,12 @@ var plugin = {
 				// go!
 				link.href = url;
 
-				head.insertBefore(link, after ? insertedSheets[after].nextSibling : head.firstChild);
+				if (after) {
+					head.insertBefore(link, insertedSheets[after].previousSibling);
+				}
+				else {
+					head.appendChild(link);
+				}
 				insertedSheets[url] = link;
 			}
 

@@ -6,9 +6,10 @@ define(
 		'./minmax',
 		'./hover',
 		'./childSelector',
-		'./comboSelector'
+		'./comboSelector'/*,
+		'./attrSelector'*/
 	],
-	function (inlineBlock, boxOffsets, ieOpacity, minmax, hover, childSelector, comboSelector) {
+	function (inlineBlock, boxOffsets, ieOpacity, minmax, hover, childSelector, comboSelector/*, attrSelector*/) {
 
 		return {
 			inlineBlock: inlineBlock,
@@ -16,6 +17,7 @@ define(
 			ieOpacity: ieOpacity,
 			minmax: minmax,
 			hoverPseudo: hoverPseudo,
+//			attrSelector: attrSelector,
 			childSelector: childSelector,
 			comboSelector: comboSelector
 		};
