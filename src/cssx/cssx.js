@@ -93,8 +93,9 @@ define(
 				delete this._thens;
 			},
 			extend: function(){
-				ExtendedStyleSheet.prototype = this;
-				var ess = new ExtendedStyleSheet;
+				/*ExtendedStyleSheet.prototype = this;
+				var ess = new ExtendedStyleSheet;*/
+				var ess = this;
 				// process each extension argument
 				for(var i = 0; i < arguments.length; i++){
 					var arg = arguments[i];
@@ -132,7 +133,7 @@ define(
 					var propertyHandler = styleSheet["on" + name] || styleSheet.onproperty;
 					if(typeof propertyHandler == "function"){
 						// we have a CSS property handler for this property
-						var result = propertyHandler(value, lastRule, name);
+						var result = propertyHandler.call(styleSheet, name, value, lastRule);
 						if(typeof result == "string"){
 							// otherwise it replacement CSS
 							return result;
@@ -252,16 +253,15 @@ define(
 
 			// create a promise
 			// add some useful stuff to it
-			this.cssText = '';
-			var cssx = this;
+			cssx.cssText = '';
 			// tell promise to write out style element when it's resolved
-			this.then(function (cssText) {
+			cssx.then(function (cssText) {
 				// TODO: finish this
-				if (cssText) createStyleNode(cssText, this.link);
+				if (cssText) createStyleNode(cssText, cssx.link);
 			});
 
 			// tell promise to call back to the loader
-			this.then(
+			cssx.then(
 				callback.resolve ? callback.resolve : callback,
 				callback.reject ? callback.reject : undef
 			);
@@ -286,7 +286,7 @@ define(
 
 			// check for special instructions (via suffixes) on the name 
 			var opts = css.parseSuffixes(name),
-				dontExecCssx = config.cssxDirectiveLimit <= 0 && listHasItem(opts.ignore, 'all');
+				dontExecCssx = config && config.cssxDirectiveLimit <= 0 && listHasItem(opts.ignore, 'all');
 
 			function process () {
 //					if (!preloading) {
@@ -323,7 +323,7 @@ define(
 			if (!dontExecCssx) {
 				// get the text of the file, too
 				// Is it really safe to rely on the text! plugin? That is not guaranteed to be there in all AMD environments, is it?
-				require(['text!' + name], gotText);
+				require(['dojo/text!' + name], gotText);
 			}
 			return cssx;
 		};
