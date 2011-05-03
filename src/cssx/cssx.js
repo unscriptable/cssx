@@ -55,18 +55,17 @@
 
 define(
 	[
-		'./css'
+		'./css',
+		'./shims'
 	],
-	function (css) {
+	function (css, shims) {
 		"use strict";
 
-		// TODO: rewrite css.js using promises and inherit Promise from there
+
 		function StyleSheet () {
 			this._thens = [];
 		}
-		function ExtendedStyleSheet(){
-			
-		}
+		function ExtendedStyleSheet () {}
 		StyleSheet.prototype = {
 
 			then: function (resolve, reject) {
@@ -97,30 +96,37 @@ define(
 				var ess = new ExtendedStyleSheet;*/
 				var ess = this;
 				// process each extension argument
-				for(var i = 0; i < arguments.length; i++){
+				for (var i = 0; i < arguments.length; i++) {
 					var arg = arguments[i];
-					for(var j in arg){
+					for (var j in arg) {
 						// TODO: delegate to the previous if one exists 
 						ess[j] = arg[j];
 					}
 				}
-				if(ess.cssText){
+				if (ess.cssText) {
 					ess.applyExtensions();
 				}
 				return ess;
 			},
-			applyExtensions: function(){
+
+			applyExtensions: function () {
 				var css = this.cssText;
 				// initial event
-				if(this.onSheet == "function"){
-					css = arg.onsheet(css);
+				if (typeof this.onsheet == "function") {
+					css = this.onsheet(css);
 				}
-				function Rule(){
-				}
+				function Rule () {}
 				Rule.prototype = {
-					eachProperty: function(onproperty){
-						return (this.children ? onproperty(0, "layout", this.children) || this.selector : this.selector) + 
-							"{" + this.cssText.replace(/\s*([^;:]+)\s*:\s*([^;]+)?/g, onproperty) + "}"; // process all the css properties
+					eachProperty: function (onproperty) {
+						var selector, css;
+						selector = (this.children ? onproperty(0, "layout", this.children) || this.selector : this.selector);
+						css = this.cssText.replace(/\s*([^;:]+)\s*:\s*([^;]+)?/g, function (full, name, value) {
+							if (styleSheet.onvalue) {
+								value = styleSheet.onvalue(value, name);
+							}
+							onproperty(full, name, value);
+						});
+						return selector +  "{" + css + "}"; // process all the css properties
 					},
 					cssText: ""
 				};
@@ -128,24 +134,25 @@ define(
 				var lastRule = new Rule;
 				lastRule.css = css;
 				var styleSheet = this;
-				function onproperty(t, name, value){
+				function onproperty (full, name, value) {
+					// TODO: stop clobbering the onvalue result with "return full;"
 					// this is called for each CSS property
 					var propertyHandler = styleSheet["on" + name] || styleSheet.onproperty;
 					if(typeof propertyHandler == "function"){
 						// we have a CSS property handler for this property
 						var result = propertyHandler.call(styleSheet, name, value, lastRule);
 						if(typeof result == "string"){
-							// otherwise it replacement CSS
+							// replacement CSS
 							return result;
 						}
 					}
-					return t;
-				};
+					return full;
+				}
 				// parse the CSS, finding each rule
-				css = css.replace(/\s*(?:([^{;\s]+)\s*{)?\s*([^{}]+;)?\s*(};?)?/g, function(full, selector, properties, close){
+				css = css.replace(/\s*(?:([^{;\s]+)\s*{)?\s*([^{}]+;)?\s*(};?)?/g, function (full, selector, properties, close) {
 					// called for each rule
-					if(selector){
-						// a selector as found, start a new rule (note this can be nested inside another selector)
+					if (selector) {
+						// a selector was found, start a new rule (note this can be nested inside another selector)
 						var newRule = new Rule();
 						(lastRule.children || (lastRule.children = [])).push(newRule); // add to the parent layout 
 						newRule._parent = lastRule;
@@ -154,11 +161,11 @@ define(
 						newRule.child = selector; // just this segment of selector
 						lastRule = newRule;
 					}
-					if(properties){
+					if (properties) {
 						// some properties were found
 						lastRule.cssText += properties;
 					}
-					if(close){
+					if (close) {
 						// rule was closed with }
 						var result = lastRule.eachProperty(onproperty);
 						if(styleSheet.onrule){
@@ -171,22 +178,21 @@ define(
 				});
 				lastRule.eachProperty(onproperty);
 				// might only need to do this if we have rendering rules
-				if(this.cssText != css){
+				if (this.cssText != css) {
 					this.cssText = css;
 					// it was modified, add the modified one
-					createStyleNode(css);
+					//createStyleNode(css);
 				}
 				return this;
 			}
 
 		};
-		for(var i in css){
+		for (var i in css) {
 			StyleSheet.prototype[i] = css[i];
 		}
 		var
 //			preloading,
-			undef,
-			shims;
+			undef;
 
 //		function checkCssxDirectives (text) {
 //			// check for any cssx markers in the file
@@ -216,107 +222,164 @@ define(
 //			};
 //		}
 
-		function applyCssx (processor, cssText, plugins) {
-			// attach plugin callbacks
-			var callbacks = {
-				},
-				count = 0;
-			try {
-				for (var p in callbacks) (function (cb, p) {
-					for (var i = 0; i < plugins.length; i++) {
-						if (plugins[i][p]) {
-							cb = function (processor, args) {
-								cb && cb(processor, args);
-								plugins[i][p](processor, args);
-							};
-	//						cb = chain(cb, plugins[i][p]);
-							count++;
-						}
-					}
-					if (cb !== undef) {
-						callbacks[p] = function () { cb(processor, arguments); }
-					}
-				}(callbacks[p], p));
-				if (count > 0) {
-					// TODO: parse file, applying cssx fixes as found
-					new CssTextParser(callbacks).parse(cssText);
-				}
-				processor.resolve(processor.cssText);
-			}
-			catch (ex) {
-				processor.reject(ex);
-			}
-		}
-
-		var cssx = new StyleSheet();
-		cssx.load = function (name, require, callback, config) {
-
-			// create a promise
-			// add some useful stuff to it
-			cssx.cssText = '';
-			// tell promise to write out style element when it's resolved
-			cssx.then(function (cssText) {
-				// TODO: finish this
-				if (cssText) createStyleNode(cssText, cssx.link);
-			});
-
-			// tell promise to call back to the loader
-			cssx.then(
-				callback.resolve ? callback.resolve : callback,
-				callback.reject ? callback.reject : undef
-			);
-
-//				// check for preloads
-//				if (preloading === undef) {
-//					preloading = true;
-//					var preloads = [];
-//					for (var p in activations) {
-//						if (activations.hasOwnProperty(p)) {
-//							// TODO: supply the environment parameter
-//							if (activations.load({ isBuild: false }, sniff)) {
-//								preloads.push('./plugin/' + p);
-//							}
+//		function applyCssx (processor, cssText, plugins) {
+//			// attach plugin callbacks
+//			var callbacks = {
+//				},
+//				count = 0;
+//			try {
+//				for (var p in callbacks) (function (cb, p) {
+//					for (var i = 0; i < plugins.length; i++) {
+//						if (plugins[i][p]) {
+//							cb = function (processor, args) {
+//								cb && cb(processor, args);
+//								plugins[i][p](processor, args);
+//							};
+//	//						cb = chain(cb, plugins[i][p]);
+//							count++;
 //						}
 //					}
-//					require(preloads, function () { preloading = false; process(); });
+//					if (cb !== undef) {
+//						callbacks[p] = function () { cb(processor, arguments); }
+//					}
+//				}(callbacks[p], p));
+//				if (count > 0) {
+//					// TODO: parse file, applying cssx fixes as found
+//					new CssTextParser(callbacks).parse(cssText);
 //				}
-//				else {
-//					preloading = false;
-//				}
+//				processor.resolve(processor.cssText);
+//			}
+//			catch (ex) {
+//				processor.reject(ex);
+//			}
+//		}
 
-			// check for special instructions (via suffixes) on the name 
-			var opts = css.parseSuffixes(name),
-				dontExecCssx = config && config.cssxDirectiveLimit <= 0 && listHasItem(opts.ignore, 'all');
+		// go get shims
+		var shimCallback = new StyleSheet(); // we really just want a promise
+		shims(function (allShims) {
 
-			function process () {
-//					if (!preloading) {
-					if (cssx.link) {
-						if (dontExecCssx) {
-							callback(cssx);
-						}
-						else if (cssx.cssText != undef /* truthy if null or undefined, but not "" */) {
-							// TODO: get directives in file to see what rules to skip/exclude
-							//var directives = checkCssxDirectives(cssx.cssText);
-							// TODO: get list of excludes from suffixes
+			var methods = StyleSheet.prototype;
 
-								cssx.applyExtensions();
-//								var directives = [];
-//								require(directives, function () {
-							callback(cssx);
+			// augment prototype, cascading onvalue, onproperty, and onXXX handlers
+			for (var i in allShims) {
+				for (var p in allShims[i]) (function (shimFunc, name, existing) {
+					if (name == 'onvalue') {
+						methods[name] = function (value, prop) {
+							var result = shimFunc(value, prop);
+							return existing ? existing(result, prop) : result;
 						}
 					}
-//					}
+					else if (name == 'onproperty') {
+						methods[name] = function (value, rule, prop) {
+							var result = shimFunc(value, rule, prop);
+							return existing ? existing(result, rule, prop) : result;
+						}
+					}
+					else if (!existing) {
+						methods[name] = shimFunc;
+					}
+					else {
+						methods[name] = function () {
+							// last shim loaded wins
+							var result = shimFunc.apply(this, arguments);
+							return typeof result == 'string' ? result : existing.apply(this, arguments);
+						};
+					}
+				}(allShims[i][p], p, methods[p]))
 			}
 
-			function gotLink (link) {
-				cssx.link = link;
-				process();
-			}
 
-			function gotText (text) {
-				cssx.cssText = text;
-				process();
-			}
+			shimCallback.resolve();
+
+		});
+
+		var plugin = {};
+		plugin.load = function (name, require, callback, config) {
+
+			shimCallback.then(function () {
+
+				// create a promise
+				var cssx = new StyleSheet();
+				// add some useful stuff to it
+				cssx.cssText = '';
+				// tell promise to write out style element when it's resolved
+				cssx.then(function (cssx) {
+					// TODO: finish this
+					if (cssx.cssText) createStyleNode(cssx.cssText);
+				})
+				// tell promise to call back to the loader
+				.then(
+					callback.resolve ? callback.resolve : callback,
+					callback.reject ? callback.reject : undef
+				);
+
+	//				// check for preloads
+	//				if (preloading === undef) {
+	//					preloading = true;
+	//					var preloads = [];
+	//					for (var p in activations) {
+	//						if (activations.hasOwnProperty(p)) {
+	//							// TODO: supply the environment parameter
+	//							if (activations.load({ isBuild: false }, sniff)) {
+	//								preloads.push('./plugin/' + p);
+	//							}
+	//						}
+	//					}
+	//					require(preloads, function () { preloading = false; process(); });
+	//				}
+	//				else {
+	//					preloading = false;
+	//				}
+
+				// check for special instructions (via suffixes) on the name
+				var opts = css.parseSuffixes(name),
+					dontExecCssx = config.cssxDirectiveLimit <= 0 && listHasItem(opts.ignore, 'all');
+
+				function process () {
+	//					if (!preloading) {
+	//					if (cssx.link) {
+							if (dontExecCssx) {
+								cssx.resolve(cssx);
+							}
+							else { //} if (cssx.cssText != undef /* truthy if null or undefined, but not "" */) {
+								// TODO: get directives in file to see what rules to skip/exclude
+								//var directives = checkCssxDirectives(cssx.cssText);
+								// TODO: get list of excludes from suffixes
+
+									cssx.applyExtensions();
+	//								var directives = [];
+	//								require(directives, function () {
+								cssx.resolve(cssx);
+							}
+	//					}
+	//					}
+				}
+
+				function gotLink (link) {
+					cssx.link = link;
+					cssx.resolve();
+				}
+
+				function gotText (text) {
+					cssx.cssText = text;
+					process();
+				}
+
+				var url = require['toUrl'](css.nameWithExt(name, 'css'));
+
+				if (isXDomain(url, document)) {
+					// get css file (link) via the css plugin
+					// TODO: pass a promise, not just a callback
+					css.load(name, require, gotLink, config);
+				}
+				else {
+					// get the text of the file
+					fetchText(url, gotText, cssx.reject);
+				}
+
+				return cssx;
+
+			}, callback.reject ? callback.reject : undef);
 
 			// get css file (link) via the css plugin
 			css.load(name, require, gotLink, config);
@@ -328,31 +391,34 @@ define(
 			return cssx;
 		};
 
-		return cssx;
-		function has(){
+		return plugin;
+
+		function has () {
 			return true;// for now
 		}
-		function createStyleNode(css){
-			var head = cssx.findHead();
-			if(has("dom-create-style-element")){
+
+		function createStyleNode (css) {
+			var head = document.head || document.getElementsByTagName('head')[0];
+			if (has("dom-create-style-element")) {
 				// we can use standard <style> element creation
 				styleSheet = document.createElement("style");
 				styleSheet.setAttribute("type", "text/css");
 				styleSheet.appendChild(document.createTextNode(css));
 				head.insertBefore(styleSheet, head.firstChild);
 			}
-			else{
-				try{
+			else {
+				try {
 					var styleSheet = document.createStyleSheet();
-				}catch(e){
+				} catch (e) {
 					// if we went past the 31 stylesheet limit in IE, we will combine all existing stylesheets into one. 
 					var styleSheets = dojox.html.getStyleSheets(); // we would only need the IE branch in this method if it was inlined for other uses
 					var cssText = "";
-					for(var i in styleSheets){
+					for (var i in styleSheets) {
 						var styleSheet = styleSheets[i];
-						if(styleSheet.href){
+						if (styleSheet.href) {
 							aggregate =+ "@import(" + styleSheet.href + ");";
-						}else{
+						}
+						 else {
 							aggregate =+ styleSheet.cssText;
 						}
 						dojo.destroy(styleSheets.owningElement);
@@ -363,6 +429,72 @@ define(
 				}
 				styleSheet.cssText = css;
 			}
-		}		
+		}
+
+
+		/***** xhr *****/
+
+		var progIds = ['Msxml2.XMLHTTP', 'Microsoft.XMLHTTP', 'Msxml2.XMLHTTP.4.0'];
+
+		function xhr () {
+			if (typeof XMLHttpRequest !== "undefined") {
+				// rewrite the getXhr method to always return the native implementation
+				xhr = function () { return new XMLHttpRequest(); };
+			}
+			else {
+				// keep trying progIds until we find the correct one, then rewrite the getXhr method
+				// to always return that one.
+				var noXhr = xhr = function () {
+						throw new Error("getXhr(): XMLHttpRequest not available");
+					};
+				while (progIds.length > 0 && xhr === noXhr) (function (id) {
+					try {
+						new ActiveXObject(id);
+						xhr = function () { return new ActiveXObject(id); };
+					}
+					catch (ex) {}
+				}(progIds.shift()));
+			}
+			return xhr();
+		}
+
+		function fetchText (url, callback, errback) {
+			var x = xhr();
+			x.open('GET', url, true);
+			x.onreadystatechange = function (e) {
+				if (x.readyState === 4) {
+					if (x.status < 400) {
+						callback(x.responseText);
+					}
+					else {
+						errback(new Error('fetchText() failed. status: ' + x.statusText));
+					}
+				}
+			};
+			x.send(null);
+		}
+
+		function isXDomain (url, doc) {
+			// using rules at https://developer.mozilla.org/En/Same_origin_policy_for_JavaScript
+			// Note: file:/// urls are not handled by this function!
+			// See also: http://en.wikipedia.org/wiki/Same_origin_policy
+			if (!/:\/\/|^\/\//.test(url)) {
+				// relative urls are always same domain, duh
+				return false;
+			}
+			else {
+				// same domain means same protocol, same host, same port
+				// exception: document.domain can override host (see link above)
+				var loc = doc.location,
+					parts = url.match(/([^:]+:)\/\/([^:\/]+)(?::([^\/]+)\/)?/);
+				return (
+					loc.protocol !== parts[1] ||
+					(doc.domain !== parts[2] && loc.host !== parts[2]) ||
+					loc.port !== (parts[3] || '')
+				);
+			}
+		}
+
+
 	}
 );
