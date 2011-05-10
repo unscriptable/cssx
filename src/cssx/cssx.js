@@ -293,118 +293,119 @@ define(
 
 		});
 
-		var plugin = {};
-		plugin.load = function (name, require, callback, config) {
-
-			shimCallback.then(function () {
-
-				// create a promise
-				var cssx = new StyleSheet();
-				// add some useful stuff to it
-				cssx.cssText = '';
-				// tell promise to write out style element when it's resolved
-				cssx.then(function (cssx) {
-					// TODO: finish this
-					if (cssx.cssText) createStyleNode(cssx.cssText);
-				})
-				// tell promise to call back to the loader
-				.then(
-					callback.resolve ? callback.resolve : callback,
-					callback.reject ? callback.reject : undef
-				);
-
-	//				// check for preloads
-	//				if (preloading === undef) {
-	//					preloading = true;
-	//					var preloads = [];
-	//					for (var p in activations) {
-	//						if (activations.hasOwnProperty(p)) {
-	//							// TODO: supply the environment parameter
-	//							if (activations.load({ isBuild: false }, sniff)) {
-	//								preloads.push('./plugin/' + p);
-	//							}
-	//						}
-	//					}
-	//					require(preloads, function () { preloading = false; process(); });
-	//				}
-	//				else {
-	//					preloading = false;
-	//				}
-
-				// check for special instructions (via suffixes) on the name
-				var opts = css.parseSuffixes(name),
-					dontExecCssx = config.cssxDirectiveLimit <= 0 && listHasItem(opts.ignore, 'all');
-
-				function process () {
-	//					if (!preloading) {
-	//					if (cssx.link) {
-							if (dontExecCssx) {
-								cssx.resolve(cssx);
-							}
-							else { //} if (cssx.cssText != undef /* truthy if null or undefined, but not "" */) {
-								// TODO: get directives in file to see what rules to skip/exclude
-								//var directives = checkCssxDirectives(cssx.cssText);
-								// TODO: get list of excludes from suffixes
-
-									cssx.applyExtensions();
-	//								var directives = [];
-	//								require(directives, function () {
-								cssx.resolve(cssx);
-							}
-	//					}
-	//					}
+		return { // the module export, with load() to be a plugin
+			load: function (name, require, callback, config) {
+	
+				shimCallback.then(function () {
+	
+					// create a promise
+					var cssx = new StyleSheet();
+					// add some useful stuff to it
+					cssx.cssText = '';
+					// tell promise to write out style element when it's resolved
+					cssx.then(function (cssx) {
+						// TODO: finish this
+						if (cssx.cssText) createStyleNode(cssx.cssText);
+					})
+					// tell promise to call back to the loader
+					.then(
+						callback.resolve ? callback.resolve : callback,
+						callback.reject ? callback.reject : undef
+					);
+	
+		//				// check for preloads
+		//				if (preloading === undef) {
+		//					preloading = true;
+		//					var preloads = [];
+		//					for (var p in activations) {
+		//						if (activations.hasOwnProperty(p)) {
+		//							// TODO: supply the environment parameter
+		//							if (activations.load({ isBuild: false }, sniff)) {
+		//								preloads.push('./plugin/' + p);
+		//							}
+		//						}
+		//					}
+		//					require(preloads, function () { preloading = false; process(); });
+		//				}
+		//				else {
+		//					preloading = false;
+		//				}
+	
+					// check for special instructions (via suffixes) on the name
+					var opts = css.parseSuffixes(name),
+						dontExecCssx = config.cssxDirectiveLimit <= 0 && listHasItem(opts.ignore, 'all');
+	
+					function process () {
+		//					if (!preloading) {
+		//					if (cssx.link) {
+								if (dontExecCssx) {
+									cssx.resolve(cssx);
+								}
+								else { //} if (cssx.cssText != undef /* truthy if null or undefined, but not "" */) {
+									// TODO: get directives in file to see what rules to skip/exclude
+									//var directives = checkCssxDirectives(cssx.cssText);
+									// TODO: get list of excludes from suffixes
+	
+										cssx.applyExtensions();
+		//								var directives = [];
+		//								require(directives, function () {
+									cssx.resolve(cssx);
+								}
+		//					}
+		//					}
+					}
+	
+					function gotLink (link) {
+						cssx.link = link;
+						cssx.resolve();
+					}
+	
+					function gotText (text) {
+						cssx.cssText = text;
+						process();
+					}
+	
+					var url = require['toUrl'](css.nameWithExt(name, 'css'));
+	
+					if (isXDomain(url, document)) {
+						// get css file (link) via the css plugin
+						// TODO: pass a promise, not just a callback
+						css.load(name, require, gotLink, config);
+					}
+					else {
+						// get the text of the file
+						fetchText(url, gotText, cssx.reject);
+					}
+	
+					return cssx;
+	
+				}, callback.reject ? callback.reject : undef);
+	
+				// get css file (link) via the css plugin
+				css.load(name, require, gotLink, config);
+				if (!dontExecCssx) {
+					// get the text of the file, too
+					// Is it really safe to rely on the text! plugin? That is not guaranteed to be there in all AMD environments, is it?
+					require(['dojo/text!' + name], gotText);
 				}
-
-				function gotLink (link) {
-					cssx.link = link;
-					cssx.resolve();
-				}
-
-				function gotText (text) {
-					cssx.cssText = text;
-					process();
-				}
-
-				var url = require['toUrl'](css.nameWithExt(name, 'css'));
-
-				if (isXDomain(url, document)) {
-					// get css file (link) via the css plugin
-					// TODO: pass a promise, not just a callback
-					css.load(name, require, gotLink, config);
-				}
-				else {
-					// get the text of the file
-					fetchText(url, gotText, cssx.reject);
-				}
-
 				return cssx;
-
-			}, callback.reject ? callback.reject : undef);
-
-			// get css file (link) via the css plugin
-			css.load(name, require, gotLink, config);
-			if (!dontExecCssx) {
-				// get the text of the file, too
-				// Is it really safe to rely on the text! plugin? That is not guaranteed to be there in all AMD environments, is it?
-				require(['dojo/text!' + name], gotText);
-			}
-			return cssx;
+			},
+			createStyleNode: createStyleNode
 		};
-
-		return plugin;
+		
 
 		function has () {
-			return true;// for now
+			return !document.createStyleSheet;
 		}
 
 		function createStyleNode (css) {
 			var head = document.head || document.getElementsByTagName('head')[0];
-			if (has("dom-create-style-element")) {
+			if (has("dom-createstyleelement")) {
 				// we can use standard <style> element creation
 				styleSheet = document.createElement("style");
 				styleSheet.setAttribute("type", "text/css");
 				styleSheet.appendChild(document.createTextNode(css));
-				head.insertBefore(styleSheet, head.firstChild);
+				return head.insertBefore(styleSheet, head.firstChild);
 			}
 			else {
 				try {
@@ -428,6 +429,7 @@ define(
 					return dojox.html.getDynamicStyleSheet(styleSheetName); 
 				}
 				styleSheet.cssText = css;
+				return styleSheet;
 			}
 		}
 
