@@ -56,9 +56,8 @@
 define(
 	[
 		'./css',
-		'./shims'
 	],
-	function (css, shims) {
+	function (css) {
 		"use strict";
 
 
@@ -85,16 +84,18 @@ define(
 					function (resolve, reject) { reject && reject(arg); return this; };
 				// disallow multiple calls to resolve or reject
 				this.resolve = this.reject =
-					function () { throw new Error('Promise already completed.'); };
+					function () { 
+						
+					//throw new Error('Promise already completed.'); 
+					};
 				// complete all async then()s
 				var aThen, i = 0;
 				while (aThen = this._thens[i++]) { aThen[which] && aThen[which](arg); }
 				delete this._thens;
 			},
 			extend: function(){
-				/*ExtendedStyleSheet.prototype = this;
-				var ess = new ExtendedStyleSheet;*/
-				var ess = this;
+				ExtendedStyleSheet.prototype = this;
+				var ess = new ExtendedStyleSheet;
 				// process each extension argument
 				for (var i = 0; i < arguments.length; i++) {
 					var arg = arguments[i];
@@ -105,6 +106,8 @@ define(
 				}
 				if (ess.cssText) {
 					ess.applyExtensions();
+				}else{
+					ess.createLoad();
 				}
 				return ess;
 			},
@@ -255,8 +258,8 @@ define(
 //		}
 
 		// go get shims
-		var shimCallback = new StyleSheet(); // we really just want a promise
-		shims(function (allShims) {
+		var cssx = new StyleSheet(); // we really just want a promise
+/*		shims(function (allShims) {
 
 			var methods = StyleSheet.prototype;
 
@@ -289,23 +292,21 @@ define(
 			}
 
 
-			shimCallback.resolve();
+			cssx.resolve();
 
-		});
-
-		return { // the module export, with load() to be a plugin
-			load: function (name, require, callback, config) {
+		});*/
+		cssx.createLoad = function(){
+			// the module export, with load() to be a plugin
+			var cssx = this;
+			this.load = function (name, require, callback, config) {
 	
-				shimCallback.then(function () {
-	
-					// create a promise
-					var cssx = new StyleSheet();
 					// add some useful stuff to it
 					cssx.cssText = '';
 					// tell promise to write out style element when it's resolved
-					cssx.then(function (cssx) {
+					cssx.then(function () {
 						// TODO: finish this
 						if (cssx.cssText) createStyleNode(cssx.cssText);
+						return cssx;
 					})
 					// tell promise to call back to the loader
 					.then(
@@ -333,7 +334,7 @@ define(
 	
 					// check for special instructions (via suffixes) on the name
 					var opts = css.parseSuffixes(name),
-						dontExecCssx = config.cssxDirectiveLimit <= 0 && listHasItem(opts.ignore, 'all');
+						dontExecCssx = config && config.cssxDirectiveLimit <= 0 && listHasItem(opts.ignore, 'all');
 	
 					function process () {
 		//					if (!preloading) {
@@ -357,7 +358,7 @@ define(
 	
 					function gotLink (link) {
 						cssx.link = link;
-						cssx.resolve();
+						//cssx.resolve();
 					}
 	
 					function gotText (text) {
@@ -377,22 +378,20 @@ define(
 						fetchText(url, gotText, cssx.reject);
 					}
 	
-					return cssx;
-	
-				}, callback.reject ? callback.reject : undef);
 	
 				// get css file (link) via the css plugin
 				css.load(name, require, gotLink, config);
-				if (!dontExecCssx) {
+				/*if (!dontExecCssx) {
 					// get the text of the file, too
 					// Is it really safe to rely on the text! plugin? That is not guaranteed to be there in all AMD environments, is it?
 					require(['dojo/text!' + name], gotText);
-				}
+				}*/
 				return cssx;
-			},
-			createStyleNode: createStyleNode
+			};
 		};
-		
+		cssx.createLoad();
+		cssx.createStyleNode = createStyleNode;
+		return cssx;		
 
 		function has () {
 			return !document.createStyleSheet;
