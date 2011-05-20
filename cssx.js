@@ -112,81 +112,114 @@ define(
 				return ess;
 			},
 
-			applyExtensions: function () {
+			applyExtensions: function (callback) {
 				var css = this.cssText;
-				// initial event
-				if (typeof this.onsheet == "function") {
-					css = this.onsheet(css);
-				}
-				function Rule () {}
-				Rule.prototype = {
-					eachProperty: function (onproperty) {
-						var selector, css;
-						selector = (this.children ? onproperty(0, "layout", this.children) || this.selector : this.selector);
-						css = this.cssText.replace(/\s*([^;:]+)\s*:\s*([^;]+)?/g, function (full, name, value) {
-							if (styleSheet.onvalue) {
-								value = styleSheet.onvalue(value, name);
-							}
-							onproperty(full, name, value);
-						});
-						return selector +  "{" + css + "}"; // process all the css properties
-					},
-					cssText: ""
-				};
-				
-				var lastRule = new Rule;
-				lastRule.css = css;
-				var styleSheet = this;
-				function onproperty (full, name, value) {
-					// TODO: stop clobbering the onvalue result with "return full;"
-					// this is called for each CSS property
-					var propertyHandler = styleSheet["on" + name] || styleSheet.onproperty;
-					if(typeof propertyHandler == "function"){
-						// we have a CSS property handler for this property
-						var result = propertyHandler.call(styleSheet, name, value, lastRule);
-						if(typeof result == "string"){
-							// replacement CSS
-							return result;
-						}
-					}
-					return full;
-				}
-				// parse the CSS, finding each rule
-				css = css.replace(/\s*(?:([^{;\s]+)\s*{)?\s*([^{}]+;)?\s*(};?)?/g, function (full, selector, properties, close) {
-					// called for each rule
-					if (selector) {
-						// a selector was found, start a new rule (note this can be nested inside another selector)
-						var newRule = new Rule();
-						(lastRule.children || (lastRule.children = [])).push(newRule); // add to the parent layout 
-						newRule._parent = lastRule;
-						var parentSelector = lastRule.selector;
-						newRule.selector = (parentSelector ? parentSelector + " " : "") + selector;
-						newRule.child = selector; // just this segment of selector
-						lastRule = newRule;
-					}
-					if (properties) {
-						// some properties were found
-						lastRule.cssText += properties;
-					}
-					if (close) {
-						// rule was closed with }
-						var result = lastRule.eachProperty(onproperty);
-						if(styleSheet.onrule){
-							styleSheet.onrule(lastRule);
-						}
-						lastRule = lastRule._parent;
-						return result; 
-					}
-					return "";
+				var modules = [];
+				css.replace(/require\s*\(\s*['"]([^'"]*)['"]\s*\)/g, function(t, moduleId){
+					modules.push(moduleId);
 				});
-				lastRule.eachProperty(onproperty);
-				// might only need to do this if we have rendering rules
-				if (this.cssText != css) {
-					this.cssText = css;
-					// it was modified, add the modified one
-					//createStyleNode(css);
-				}
-				return this;
+				var styleSheet = this;
+				require(modules, function(){
+					// initial event
+					if (typeof styleSheet.onsheet == "function") {
+						css = styleSheet.onsheet(css);
+					}
+					function Rule () {}
+					Rule.prototype = {
+						eachProperty: function (onproperty) {
+							var selector, css;
+							selector = this.selector; //(this.children ? onproperty(0, "layout", this.children) || this.selector : this.selector);
+							var convertedCss = this.cssText.replace(/\s*([^;:]+)\s*:\s*([^;]+)?/g, function (full, name, value) {
+								if (styleSheet.onvalue) {
+									value = styleSheet.onvalue(value, name);
+								}
+								return onproperty(full, name, value) || (styleSheet.onvalue ? name + ": " + value : full);
+							});
+							if(this.children){
+								for(var i = 0; i < this.children.length; i++){
+									var child = this.children[i];
+									if(!child.selector){ // it won't have a selector if it is property with nested properties
+										onproperty(null, child.property, child);
+									}
+								}
+							}
+							return convertedCss;
+						},
+						fullSelector: function(){
+							return (this.parent ? this.parent.fullSelector() : "") + (this.selector || "") + " ";  
+						},
+						cssText: ""
+					};
+					
+					var lastRule = new Rule;
+					lastRule.css = css;
+					function onproperty (full, name, value) {
+						// this is called for each CSS property
+						var propertyHandler = styleSheet["on" + name] || styleSheet.onproperty;
+						if(typeof propertyHandler == "function"){
+							// we have a CSS property handler for this property
+							var result = propertyHandler.call(styleSheet, name, value, lastRule);
+							if(typeof result == "string"){
+								// replacement CSS
+								return result;
+							}
+						}
+					}
+					// parse the CSS, finding each rule
+					css.replace(/\s*(?:([^{;\s]+)\s*{)?\s*([^{}]+;)?\s*(};?)?/g, function (full, selector, properties, close) {
+						// called for each rule
+						if (selector) {
+							// a selector was found, start a new rule (note this can be nested inside another selector)
+							var newRule = new Rule();
+							(lastRule.children || (lastRule.children = [])).push(newRule); // add to the parent layout 
+							newRule.parent = lastRule;
+							if(selector.charAt(selector.length - 1) == ":"){
+								// it is property style nesting
+								newRule.property= selector.substring(0, selector.length - 1);
+							}else{
+								// as long as it is not a property style inclusion, then we can calculate the new collective selector
+								newRule.selector = selector; // just this segment of selector
+							}
+							lastRule = newRule;
+						}
+						if (properties) {
+							// some properties were found
+							lastRule.cssText += properties;
+						}
+						if (close) {
+							// rule was closed with }
+							lastRule = lastRule.parent;
+						}
+					});
+					styleSheet.rootRule = lastRule;
+					css = [];
+					function getCssText(parent){
+						lastRule = parent;
+						var properties = parent.eachProperty(onproperty);
+						if(styleSheet.onrule){
+							styleSheet.onrule(parent);
+						}
+						var children = parent.children;
+						if(children){
+							for(var i = 0, length = children.length; i < length; i++){
+								var child = children[i];
+								var cssText = getCssText(child);
+								if(cssText){
+									css.push(child.fullSelector() + "{" + cssText + "}");
+								}
+							}
+						}
+						return properties;
+					}
+					getCssText(lastRule);
+					// might only need to do this if we have rendering rules
+					//if (styleSheet.cssText != css) {
+						styleSheet.cssText = css.join("\n");
+						// it was modified, add the modified one
+						//createStyleNode(css);
+					//}
+					callback(this);
+				});
 			}
 
 		};
@@ -347,10 +380,11 @@ define(
 									//var directives = checkCssxDirectives(cssx.cssText);
 									// TODO: get list of excludes from suffixes
 	
-										cssx.applyExtensions();
+										cssx.applyExtensions(function(){
+											cssx.resolve(cssx);									
+										});
 		//								var directives = [];
 		//								require(directives, function () {
-									cssx.resolve(cssx);
 								}
 		//					}
 		//					}
