@@ -7,18 +7,18 @@
 <script>
 	require = {
 		paths: {
-			cssx: '../src/cssx/'
+			cssx: '/packages/cssx/'
 		}
 	};
 </script>
 
-<script src="require.js"></script>
+<script src="/dojo/dojo.js" data-dojo-config="async:true"></script>
 <!--<script src="curl.js"></script>-->
 
 <script>
 var now = new Date();
 //console.profile();
-require(['cssx/cssx!ss/scrollbar.css'], function (cssx) {
+require(['cssx/cssx!./shims.css'], function (cssx) {
 	//console.profileEnd();
 	console.log(new Date() - now);
 });
@@ -28,7 +28,35 @@ require(['cssx/cssx!ss/scrollbar.css'], function (cssx) {
 </head>
 <body>
 
-<div class="scrolltest">this box has a border on the top</div>
-
+<div class="rounded-box">
+	<div class="scrolltest"><pre>{
+	position: absolute;
+	padding: 10px;
+	left: 50px;
+	top: 50px;
+	bottom: 50px;
+	right: 50px;
+	border: 1px solid black;
+	border-radius: 15px;
+	box-shadow: 10px 10px 5px #888888;
+	background-color: #ddd;
+}</pre></div>
+	
+	<div class="opacity" test="value"><pre>{
+	opacity: 0.7;
+}</pre></div>
+	<div class="sized-box">sized box</div>
+	<div class="transition" onmouseenter="this.className='transition transition-hover'">transition</div>
+	<div class="gradient-box"><pre>{
+	background-image: linear-gradient(top,  #cccccc,  #000000);
+	transform: rotate(-20deg);
+	position: absolute;
+	left: 300px;
+	top: 100px;
+	width: 560px;
+	height: 170px;
+}</pre></div>
+	
+</div>
 </body>
 </html>

@@ -12,18 +12,12 @@
 define(
 	['cssx/sniff'],
 	function (sniff) {
-
 		return {
-
-			onProperty: function (processor, parseArgs, ctx) { //(/* String */ propName, /* String */ value, /* String|Array */ selectors, /* String */ ss) {
-				if (parseArgs.propName == 'opacity') {
-					var rule = { selectors: parseArgs.selectors };
-					rule[ctx.propName] = parseArgs.propValue;
-					processor.addRule(rule);
-				}
+			onProperty: function (name, value) {
+				// TODO: only do if IE
+				return 'filter: alpha(opacity=' + (value * 100) + '); zoom: 1;';
 			}
 		};
-
 	}
 );
 

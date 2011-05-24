@@ -1,0 +1,59 @@
+@cssx-value "cssx/shim/gradient" as linear-gradient;
+@cssx-value "cssx/shim/gradient" as radial-gradient;
+@cssx-value "cssx/shim/scrollbar";
+@cssx-property "cssx/shim/opacity";
+@cssx-property "cssx/shim/boxOffsets" as bottom;
+@cssx-property "cssx/shim/boxOffsets" as right;
+@cssx-property "cssx/shim/transition";
+@cssx-property "cssx/shim/vendorize" as border-radius;
+@cssx-property "cssx/shim/vendorize" as box-shadow;
+@cssx-property "cssx/shim/vendorize" as box-sizing;
+@cssx-property "cssx/shim/vendorize" as border-image;
+@cssx-property "cssx/shim/vendorize" as transform;
+@cssx-selector "cssx/shim/selector";
+
+.opacity[test=value] {
+	opacity: 0.7;
+}
+.opacity {
+	opacity: 0.4;
+}
+.transition {
+	transition-duration: 2s;
+	background-color: red;
+	test: { ds: nn };
+}
+.transition-hover {
+	background-color: green;
+}
+.transform {
+	transform: rotate(30deg);
+}
+.rounded-box {
+	position: absolute;
+	padding: 10px;
+	left: 50px;
+	top: 50px;
+	bottom: 50px;
+	right: 50px;
+	border: 1px solid black;
+	border-radius: 15px;
+	box-shadow: 10px 10px 5px #888888;
+	background-color: #ddd;
+}
+.gradient-box {
+	background-image: linear-gradient(top,  #cccccc,  #000000);
+	transform: rotate(-20deg);
+	position: absolute;
+	left: 300px;
+	top: 100px;
+	width: 560px;
+	height: 170px;
+}
+.sized-box {
+	position: relative;
+	width: 100px;
+	padding: 10px;
+	border: 10px solid transparent;
+	box-sizing: border-box;
+}
