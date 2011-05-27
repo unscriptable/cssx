@@ -188,7 +188,7 @@ define(
 
 			// create default output if we didn't get any from the shims
 			if (output.length) {
-				this.output.concat(output);
+				this.output.push.apply(this.output, output);
 			}
 			else {
 				this.output.push('\t', name, ':', value, ';\n');
@@ -286,7 +286,7 @@ define(
 			if (has('dom-create-stylesheet')) {
 				var sheet = nextSheet;
 				nextSheet = document.createStyleSheet();
-				if (document.styleSheets.length > 30) {
+				if (document.styleSheets.length >= 30) {
 					moveSheetsToCollector();
 			}
 				sheet.owningElement.setAttribute('data-cssx-id', name);
@@ -434,7 +434,6 @@ define(
 
 			shimCallback.then(
 				function () {
-//(function () { clearTimeout(window._cssx_to); window._cssx_list = window._cssx_list || []; window._cssx_list.push(name); window._cssx_to = setTimeout(function () { alert(window._cssx_list.join('\n')); }, 1000) }());
 					// create a promise
 					var processor = new CssProcessor(activeShims),
 						stylesheet = getStylesheet(name, parentSheet),
@@ -486,7 +485,6 @@ define(
 					}
 
 					function gotText (text) {
-
 						processor.input = text;
 						process();
 					}
