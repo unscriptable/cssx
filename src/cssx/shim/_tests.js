@@ -17,7 +17,7 @@ define({
 	//    sniff: Object - the cssx/sniff module, with many sniffing methods
 	//    ctx: Object - a place to store stuff that the shim might need (e.g. vendor prefix)
 
-	/***** properties and vaues *****/
+	/***** properties and values *****/
 
 	minmax: {
 		test: function (env, sniff) {
@@ -84,6 +84,16 @@ define({
 		},
 		name: './shim/hover'
 	},
+
+	// TODO: get attrSelector working
+	//attrSelector: {
+	//	test: function (env, sniff) {
+	//		// Note: this is an inference test.
+	//		// FIXME: do a true test?
+	//		return sniff.cssProp('maxWidth');
+	//	},
+	//	name: './shim/attrSelector'
+	//},
 
 	comboSelector: {
 		test: function (env, sniff) {

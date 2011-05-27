@@ -132,10 +132,12 @@ define(function () {
 				'<!--': cd,
 				'-->': cd,
 				'"': partial(skip, /[^\\]"/g, true),
-				"'": partial(skip, /[^\\]'/g, true)
+				"'": partial(skip, /[^\\]'/g, true),
+				'""': passthru,
+				"''": passthru
 			},
 			// regex to detect state transitions
-			rxSs = /\s*(.*?)\s*?(,|;|@|{|}|\/\*|"|'|<!--|-->)/g,
+			rxSs = /\s*(.*?)\s*?(,|;|@|{|}|\/\*|""?|''?|<!--|-->)/g,
 			// regex to extract import url (and media type)
 			rxUrl = /(?:url\s*\((["'])?(.*?)\1?\)|(["'])(.*?)\3)\s*(.*|$)/,
 			// media types regex
@@ -353,6 +355,8 @@ define(function () {
 			}
 			rxSs.lastIndex = rxSkip.lastIndex;
 		}
+
+		function passthru (ss, sd) { }
 
 		function dn (ss, sd, state) {
 			// props: String|Object. The new state or an object with the overridden properties.

@@ -3,7 +3,6 @@
  *
  * TODO: documentation
  * TODO: allow for nested rules (LESS, SASS, XStyle)
- * TODO: process selector replacements in onSelector so they can be cascaded to other selector processors
  * TODO: reuse toggleClass
  *
  */
@@ -14,8 +13,8 @@
 		comboCheckers = [],
 		replacements,
 		id = 0,
-		comboDetectorRx = /\.\w+\./g,
-		comboFinderRx = /(.*)((?:\.[\w\-]+){2,})/g,
+		comboDetectorRx = /\.[\w\-]+\./g,
+		comboFinderRx = /(.*?)((?:\.[\w\-]+){2,})/g,
 		comboSplitterRx = /\b(\w|-)+\b/g,
 		ruleTemplate = '.${0}{${1}:expression(cssx_combo_selector_check(this,"${2}",${3}));}\n';
 
@@ -38,7 +37,7 @@
 				classes[className] = Math.pow(2, index++);
 				classList.push(className);
 			}
-			return className; // minimizes memory allocation work
+			return ''; // minimizes memory allocation work
 		});
 
 		// IE is such a cluster ____. Can't seem to get any single-pass
@@ -68,16 +67,6 @@
 		return checker && checker.check(classes);
 	}
 
-	function parseCombos (selector) {
-		var start = 0, part = '', parts = [], len = selector.length;
-		selector.replace(comboFinderRx, function (match, other, combo) {
-			parts.push({ other: other });
-			parts.push({ combo: combo });
-			return match; // minimizes memory allocation work
-		});
-		return parts;
-	}
-
 	define({
 
 		onSelector: function (selector) {
@@ -89,6 +78,7 @@
 				selector = selector.replace(comboFinderRx, function (match, other, combo) {
 					var key = createKey(),
 						newPart = other + '.' + key ;
+
 					replacements.push({
 						other: other,
 						combo: combo,
@@ -103,7 +93,7 @@
 		},
 
 		onEndRule: function () {
-			var i, j, parts, part, checkerId, baseKey, baseRule = '', rules = '';
+			var i, part, checkerId, baseKey, baseRule = '', rules = '';
 
 			if (replacements) {
 
@@ -117,27 +107,10 @@
 					checkerId = createComboChecker(part.combo);
 					part.combo.replace(comboSplitterRx, function (className) {
 						rules += templatize(ruleTemplate, [className, part.key, baseKey, checkerId]);
-						return className; // minimizes memory allocation work
+						return ''; // minimizes memory allocation work
 					});
 					baseRule += '.' + part.key + ',';
 
-//					for (j = parts.length - 1; j > 0; j--) {
-//
-//						part = parts[j];
-//
-//						if (part.other) {
-//							baseRule += part.other;
-//						}
-//						else {
-//							part.key = createKey();
-//							checkerId = createComboChecker(part.combo);
-//							part.combo.replace(comboSplitterRx, function (className) {
-//								rules += templatize(ruleTemplate, [className, part.key, baseKey, checkerId]);
-//								return className; // minimizes memory allocation work
-//							});
-//							baseRule += '.' + part.key + ',';
-//						}
-//					}
 				}
 
 				baseRule += '\n' + rules;

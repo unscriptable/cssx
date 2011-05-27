@@ -30,15 +30,14 @@
 
 define(
 	[
-		'require',
-		'./css',
 		'./shims',
 		'./CssTextParser'
 	],
-	function (require, css, shims, CssTextParser) {
+	function (shims, CssTextParser) {
 
 		var
 			undef,
+			debugMode,
 			head = document.head || document.getElementsByTagName('head')[0],
 			// this actually tests for absolute urls and root-relative urls
 			// they're both non-relative
@@ -47,6 +46,23 @@ define(
 			findUrlRx = /(?:url\()[^\)]*(?:\))/g,
 			stripUrlRx = /url\(\s*["']?|["']?\s*\)/g,
 			activeShims = {};
+
+		function nameWithExt (name, defaultExt) {
+			return name.lastIndexOf('.') <= name.lastIndexOf('/') ?
+				name + '.' + defaultExt : name;
+		}
+
+		function parseSuffixes (name) {
+			// creates a dual-structure: both an array and a hashmap
+			// suffixes[0] is the actual name
+			var parts = name.split('!'),
+				suf, i = 1, pair;
+			while ((suf = parts[i++])) { // double-parens to avoid jslint griping
+				pair = suf.split('=', 2);
+				parts[pair[0]] = pair.length == 2 ? pair[1] : true;
+			}
+			return parts;
+		}
 
 		function Promise () {
 			this._thens = [];
@@ -83,21 +99,27 @@ define(
 		function CssProcessor (processors) {
 			Promise.call(this);
 			this.input = '';
-			this.output = '';
+			// since this code is mostly for IE, we're using IE-friendly string concatenation:
+			this.output = [];
 			this.processors = processors;
 		}
 		CssProcessor.prototype = new Promise();
+
+		CssProcessor.prototype.getOutput = function () {
+			return this.output.join('');
+		};
 
 		CssProcessor.prototype.onRule = function (selectors) {
 			// onRule processors should output anything that needs to be output
 			// before processing the current rule. They should not output
 			// anything for the current rule.
-			var self = this, result, output, first = true;
+			var self = this, result, output, first = true, modified;
 
 			each(this.processors.onRule, function (processor) {
 				result = processor(selectors);
 				if (result) {
-					self.output += result;
+					modified = true;
+					self.output.push(result);
 				}
 			});
 
@@ -107,33 +129,39 @@ define(
 				each(this.processors.onSelector, function (processor) {
 					result = processor(output);
 					if (typeof result == 'string') {
+						modified = true;
 						output = result;
 					}
 				});
 				if (output) {
-					this.output += first ? output : ',' + output;
+					this.output.push(first ? output : ',' + output);
 					first = false;
 				}
 			}
 
-			// onRule processors shouldn't add a brace!
-			this.output += '{\n';
+			if (debugMode && modified) {
+				this.output.push('\n/* ', selectors.join(','), ' */\n');
+			}
+
+			this.output.push('{\n');
 		};
 
 		CssProcessor.prototype.onProperty = function (name, value, selectors) {
 			// process any callbacks for custom property names or catch-all value callbacks
-			var result, output = '';
+			var result, orig = value, output = [], modified;
 
 			// fix any urls.
 			var basePath = this.basePath;
-			value = value.replace(findUrlRx, function (url) {
+			value = (value || '').replace(findUrlRx, function (url) {
+				modified = true;
 				return translateUrl(url, basePath);
 			});
 
 			// process the value through any onValue processors
 			each(this.processors.onValue, function (processor) {
 				result = processor(name, value, selectors);
-				if (typeof result == 'string') {
+				if (typeof result == 'string' && result != value) {
+					modified = true;
 					value = result;
 				}
 			});
@@ -141,19 +169,31 @@ define(
 			each(this.processors.onProperty, function (processor) {
 				result = processor(name, value, selectors);
 				if (typeof result == 'string') {
-					output += result;
+					modified = true;
+					output.push(result);
 				}
 			});
 
 			each(this.processors[name], function (processor) {
 				result = processor(name, value, selectors);
 				if (typeof result == 'string') {
-					output += result;
+					modified = true;
+					output.push(result);
 				}
 			});
 
+			if (debugMode && modified) {
+				this.output.push('\t/* ', name, ':', orig, '; */\n');
+			}
+
 			// create default output if we didn't get any from the shims
-			this.output += output || name + ':' + value + ';\n';
+			if (output.length) {
+				this.output.concat(output);
+			}
+			else {
+				this.output.push('\t', name, ':', value, ';\n');
+			}
+
 		};
 
 		CssProcessor.prototype.onEndRule = function (selectors) {
@@ -162,30 +202,28 @@ define(
 			// anything for the current rule.
 			var self = this, result;
 			// onEndRule processors should not output a closing brace!
-			this.output += '}\n';
+			this.output.push('}\n');
 			each(this.processors.onEndRule, function (processor) {
 				result = processor(selectors);
 				if (result) {
-					self.output += result + '\n';
+					self.output.push(result, '\n');
 				}
 			});
 		};
 
 		CssProcessor.prototype.onAtRule = function (keyword, data, hasBlock) {
 			// just reproduce it
-			this.output += '@' + keyword + ' ' + data + (hasBlock ? '{' : ';');
+			this.output.push('@', keyword, (data ? ' ' + data : ''), (hasBlock ? '{' : ';'), '\n');
 		};
 
 		CssProcessor.prototype.onImport = function (url, media) {
-			// for now, just reproduce it
-			this.output += '@media url("' + translateUrl(url, this.basePath) + '") ' + media + ';\n';
-			// TODO: get @import processing working
-			//var newUrl;
-			//if (/\b(screen|all|handheld)\b/i.test(media)) {
-			//	newUrl = translateUrl(url, this.basePath);
-			//	// TODO: loading of the imported sheet must be chained!
-			//	load(url, require, function () {}, {});
-			//}
+			// @import processing
+			var newUrl;
+			if (!media || /\b(screen|all|handheld)\b/i.test(media)) {
+				newUrl = url;// translateUrl(url, this.basePath, true);
+				// TODO: loading of the imported sheet must be chained!
+				this.loadImport(newUrl);
+			}
 		};
 
 		function each (array, callback) {
@@ -200,22 +238,20 @@ define(
 		}
 
 		function applyCssx (processor) {
-			// attach plugin callbacks
 			try {
 				new CssTextParser(processor, processor).parse(processor.input);
-				// TODO: process any newly added rules, etc, here
-				processor.resolve(processor.output);
+				processor.resolve(processor.getOutput());
 			}
 			catch (ex) {
 				processor.reject(ex);
 			}
 		}
 
-		// go get shims and add them to the CssProcessor's prototype
+		// go get shims
 		var shimCallback = new Promise();
 		shims(function (allShims) {
 
-			// augment prototype, cascading property, and other handlers
+			// collect shim handlers
 			for (var i in allShims) {
 				for (var p in allShims[i]) {
 					if (!(p in {})) {
@@ -235,55 +271,84 @@ define(
 			return hasFeatures[feature];
 		}
 
-		function translateUrl (url, parentPath) {
+		function translateUrl (url, parentPath, bare) {
 			var path = url.replace(stripUrlRx, '');
 			// if this is a relative url
 			if (!nonRelUrlRe.test(path)) {
 				// append path onto it
 				path = parentPath + path;
 			}
-			return 'url("' + path + '")';
+			return bare ? path : 'url("' + path + '")';
 		}
 
-		function createStyleNode () {
+		var nextSheet;
+		function getStylesheet (name, parentSheet) {
 			if (has('dom-create-stylesheet')) {
-				return document.createStyleSheet();
+				var sheet = nextSheet;
+				nextSheet = document.createStyleSheet();
+				if (document.styleSheets.length > 30) {
+					moveSheetsToCollector();
+			}
+				sheet.owningElement.setAttribute('data-cssx-id', name);
+				return sheet;
 			}
 			else {
 				// we can use standard <style> element creation
 				var node = document.createElement("style");
 				node.setAttribute("type", "text/css");
-				head.insertBefore(node, head.firstChild);
+				if (parentSheet) {
+					head.insertBefore(node, parentSheet);
+				}
+				else {
+					head.appendChild(node);
+				}
+				node.setAttribute('id', name);
 				return node;
 			}
 		}
 
-		var currentSheet;
-		function insertCss (css) {
-			if (!currentSheet) {
-				currentSheet = createStyleNode();
-			}
+		var cssxSheets = [];
+		function insertCss (sheet, css) {
 			if (has('stylesheet-cssText')) {
 				// IE mangles cssText if you try to read it out, so we have
-				// to save a copy of the originals in cssxSheets;
-				var sheets = currentSheet.cssxSheets = currentSheet.cssxSheets || [];
-				sheets.push(css);
-				currentSheet.cssText = sheets.join('\n');
-				// this is a lame attempt to avoid 4000-rule limit of IE
-				if (currentSheet.rules.length > 3000) {
-					currentSheet = createStyleNode();
+				// to save a copy of the original cssText in cssxSheets;
+				cssxSheets.push(css);
+				sheet.cssText = css;
 				}
-			}
 			else {
-				currentSheet.appendChild(document.createTextNode(css));
+				sheet.appendChild(document.createTextNode(css));
 			}
+		}
+
+		function moveSheetsToCollector () {
+			// TODO: this routine does not avoid the 4095-selector limit in IE6-8 FIXME!
+			var style, styles, collector, cssText, i = 0;
+			// crete collector sheet
+			collector = nextSheet;
+			nextSheet = document.createStyleSheet();
+			// move all css text to collector sheet
+			cssText = cssxSheets.join('\n\n');
+			cssxSheets = [cssText];
+			collector.cssText = cssText;
+			// remove redundant sheets (all of the ones we've labeled
+			styles = document.getElementsByTagName('style');
+			while ((style = styles[i])) {
+				if (style.getAttribute('data-cssx-id')) {
+					// remove from document
+					style.parentNode && style.parentNode.removeChild(style);
+				}
+			else {
+					// skip
+					i++;
+			}
+		}
 		}
 
 		var hasFeatures = {
 			'dom-create-stylesheet': !!document.createStyleSheet,
 			'stylesheet-cssText': document.createStyleSheet &&
-				(currentSheet = document.createStyleSheet()) &&
-				('cssText' in currentSheet)
+				(nextSheet = document.createStyleSheet()) &&
+				('cssText' in nextSheet)
 		};
 
 
@@ -355,7 +420,7 @@ define(
 		}
 
 
-		function load (name, require, callback, config) {
+		function load (name, require, callback, config, parentSheet) {
 
 			function fail (ex) {
 				if (callback.reject) callback.reject(ex); else throw ex;
@@ -365,28 +430,42 @@ define(
 				callback.resolve ? callback.resolve() : callback();
 			}
 
+			debugMode = config['cssxDebug'];
+
 			shimCallback.then(
 				function () {
-
+//(function () { clearTimeout(window._cssx_to); window._cssx_list = window._cssx_list || []; window._cssx_list.push(name); window._cssx_to = setTimeout(function () { alert(window._cssx_list.join('\n')); }, 1000) }());
 					// create a promise
-					var processor = new CssProcessor(activeShims);
+					var processor = new CssProcessor(activeShims),
+						stylesheet = getStylesheet(name, parentSheet),
+						relPath = name.substr(0, name.lastIndexOf('/') + 1);
 
 					// add some useful stuff to it
 					processor.input = '';
-					processor.basePath = name.substr(0, name.lastIndexOf('/') + 1);
+					processor.basePath = require['toUrl'](relPath);
+					processor.loadImport = function (imported) {
+						// TODO: move imported stylesheet before parent
+						// TODO: somehow move @imported rules before current rules in IE
+						var promise = new Promise(),
+							url = relPath + imported;
+						load(url, require, promise, config, stylesheet);
+					};
+
+					// TODO:
+					// 1. create a load method for @imports to use
+
+
 
 					// tell promise to write out style element when it's resolved
 					processor.then(function (cssText) {
-						if (cssText) insertCss(cssText);
-					})
+						if (cssText) insertCss(stylesheet, cssText);
+					});
+
 					// tell promise to call back to the loader
-					.then(
-						resolve,
-						fail
-					);
+					processor.then(resolve, fail);
 
 					// check for special instructions (via suffixes) on the name
-					var opts = css.parseSuffixes(name),
+					var opts = parseSuffixes(name),
 						dontExecCssx = config.cssxDirectiveLimit <= 0 && listHasItem(opts.ignore, 'all');
 
 					function process () {
@@ -407,16 +486,16 @@ define(
 					}
 
 					function gotText (text) {
+
 						processor.input = text;
 						process();
 					}
 
-					var url = require['toUrl'](css.nameWithExt(name, 'css'));
+					var url = require['toUrl'](nameWithExt(name, 'css'));
 
 					if (isXDomain(url, document)) {
-						// get css file (link) via the css plugin
-						// TODO: pass a promise, not just a callback
-						css.load(name, require, gotLink, config);
+						// we can't do x-domain!
+						fail(new Error('Can\'t process x-domain stylesheet: ' + url));
 					}
 					else {
 						// get the text of the file
@@ -440,7 +519,9 @@ define(
 
 			version: '0.2',
 
-			load: load
+			load: function (name, require, callback, config) {
+				return load(name, require, callback, config);
+			}
 
 		};
 
