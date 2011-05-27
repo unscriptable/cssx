@@ -53,7 +53,7 @@ define({
 			// setting height of an inline-block node and
 			// verifying the height which would need to wait for domready.
 			// FIXME: do a true test?
-			return sniff.cssProp('maxWidth');
+			return sniff.cssProp('outline') &&  !sniff.cssProp('filter');
 		},
 		name: './shim/inlineBlock'
 	},
