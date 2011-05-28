@@ -49,8 +49,8 @@ define({
 
 	inlineBlock: {
 		test: function (env, sniff) {
-			// Note: this is an inference test. A true test would require
-			// setting height of an inline-block node and
+			// Note: this is an inference test for IE < 8. A true test
+			// would require setting height of an inline-block node and
 			// verifying the height which would need to wait for domready.
 			// FIXME: do a true test?
 			return sniff.cssProp('outline') &&  !sniff.cssProp('filter');
@@ -60,11 +60,13 @@ define({
 
 	boxOffsets: {
 		test: function (env, sniff) {
-			// Note: this is an inference test. A true test would require
-			// setting top and bottom of an absolutely positioned node and
+			// Note: this is an inference test for IE < 8. A true test
+			// would require setting height of an inline-block node and
 			// verifying the height which would need to wait for domready.
+			// Note IE7 supports box offset positioning *in theory* but
+			// fails in most non-trivial scenarios.
 			// FIXME: do a true test?
-			return sniff.cssProp('maxWidth');
+			return sniff.cssProp('outline') &&  !sniff.cssProp('filter');
 		},
 		name: './shim/boxOffsets'
 	},
