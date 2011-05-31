@@ -1,5 +1,5 @@
-This module defines a fast lightweight function for creating new elements
-terse, CSS selector-based syntax. The single function from this module creates
+This cssx/create module defines a fast lightweight function for creating new elements
+with terse, CSS selector-based syntax. The single function from this module creates
 new DOM elements with the signature:
 
     create(referenceElement?, selector, properties|innerHTML);
@@ -25,7 +25,15 @@ assign additional attributes to the element. For example:
 
 Would create an input element with a class name of "my-input", and id of "address",
 and the type attribute set to "checkbox". The attribute assignment will always use 
-setAttribute to assign the attribute to the element.  
+setAttribute to assign the attribute to the element. Multiple attributes and classes
+can be assigned to a single element. If the tag name is omitted, a div
+element will be created by default (the default tag can be changed with the 
+create.defaultTag property). For example:
+
+	create(".foo");
+
+will create a div element with the class "foo". 
+
 The create function returns the last top level element created or referenced (by a 
 suffix combinator). In the examples above, the newly create element would be returned.
 
@@ -52,7 +60,7 @@ should go before:
 This new span element will be inserted before the reference element in the DOM order.
 
 The sibling operator can reference the last created element as well. For example
-to add to td element to a table row:
+to add two td element to a table row:
 
 	create(tableRow, "td+td");
 
@@ -63,7 +71,7 @@ element or reference element. In this example, we go crazy, and create a full ta
 using the parent operator (applied twice) to traverse back up the DOM to create another table row
 after creating a td element:
 
-newTable = create(referenceElement, "table.class-name#id tr.class-name td[colSpan=2]<<tr.class-name td+td<<");
+	newTable = create(referenceElement, "table.class-name#id tr.class-name td[colSpan=2]<<tr.class-name td+td<<");
 
 We also use a parent operator twice at the end, so that we move back up two parents 
 to return the table element (instead of the td element).
@@ -72,7 +80,7 @@ Finally, we can use the comma operator to create multiple elements, each basing 
 scope on the reference element. For example we could add two more rows to our table
 without having to use the double parent operator:
 
-	create(table, "tr td,tr td+td");
+	create(newTable, "tr td,tr td+td");
 
 The third argument to create() may be an object with properties to be set on the new
 element. For example, we could write:
