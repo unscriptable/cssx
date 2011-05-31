@@ -71,7 +71,7 @@ element or reference element. In this example, we go crazy, and create a full ta
 using the parent operator (applied twice) to traverse back up the DOM to create another table row
 after creating a td element:
 
-	newTable = create(referenceElement, "table.class-name#id tr.class-name td[colSpan=2]<<tr.class-name td+td<<");
+	newTable = create(referenceElement, "table.class-name#id tr td[colSpan=2]<<tr td+td<<");
 
 We also use a parent operator twice at the end, so that we move back up two parents 
 to return the table element (instead of the td element).
