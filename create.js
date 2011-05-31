@@ -16,13 +16,11 @@ define([], function(){
 	//		(and appending to the referenceElement if provided). 
 	//		CSS combinators can be used to create child elements and sibling elements.
 	//		The create function returns the last top level element created or referenced (by a suffix combinator).
+	//		See the documentations in doc/CREATE.md for more information and the
+	//		tests in test/create.js for more examples.
 	//	examples:
-	//		To create a simple div:
-	//		|	create("div");
-	//		To create a table as child of the referenceElement, one could write:
-	//		create(referenceElement, "table.class-name#id tr.class-name td[colSpan=2]<tr.class-name td+td<<");
-	//
-	//		create(referenceElement, "table.class-name#id tr.class-name");
+	//		To create a simple div with a class name of "foo":
+	//		|	create("div.foo");
 					
 	var selectorParse = /(([-+])|[,<> ])?\s*(\.|#)?([-\w]+)?(?:\[([^\]=]+)=?['"]?([^\]'"]*)['"]?\])?/g,
 		className = "className";		
