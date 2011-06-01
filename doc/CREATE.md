@@ -1,8 +1,8 @@
-This cssx/create module defines a fast lightweight function for creating new elements
+This cssx/create module defines a fast lightweight function for creating new DOM elements
 with terse, CSS selector-based syntax. The single function from this module creates
 new DOM elements with the signature:
 
-    create(referenceElement?, selector, properties|innerHTML);
+    create(referenceElement?, selector, properties|innerHTML?);
 
 The first argument, referenceElement, is optional, and is the reference element
 for the selector. Tag syntax (no prefix) is used to indicate the tag to be created. For example:
@@ -52,7 +52,7 @@ we want to create sibling of the reference element:
 	newSpan = create(reference, "+span");
 
 Would create a new span element directly after the reference element (reference and 
-newSpan would be siblings. We can also use - operator to indicate that the new element
+newSpan would be siblings.) We can also use - operator to indicate that the new element
 should go before: 
 
 	newSpan = create(reference, "-span");
@@ -96,7 +96,9 @@ Which is identical to writing (all the properties are set using direct property 
 	newDiv.tabIndex = 1;
 	newDiv.innerHTML = "Hello, World";
 
-The third argument may also be a string, in which case it is used as the innerHTML of the
+The third argument may also be a string, in which case it is used as the text inside of the
 new element:
 
 	newDiv = create(parent, "div", "Hello, World");
+
+The text is escaped, so any string will show up as is, and will not be parsed as HTML.
