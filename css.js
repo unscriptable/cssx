@@ -92,6 +92,19 @@
 		// find the head element and set it to it's standard property if nec.
 		head = doc.head || (doc.head = doc.getElementsByTagName('head')[0]);
 
+	function absoluteUrl(base, url) {
+		if(!url || url.indexOf(":") > 0){
+			return url;
+		}
+		// in IE we do this trick to get the absolute URL
+		var lastUrl;
+		url = ((base || location.toString()).replace(/[^\/]*$/,'') + url).replace(/\/\.\//g,'/');
+		while(lastUrl != url){
+			lastUrl = url;
+			url = url.replace(/\/[^\/]+\/\.\.\//g, '/');
+		}
+		return url;
+	}
 	function has (feature) {
 		return features[feature];
 	}
@@ -178,20 +191,22 @@
 		try {
 			// webkit's and IE's sheet is null until the sheet is loaded
 			sheet = link.sheet || link.styleSheet;
-			// mozilla's sheet throws an exception if trying to access xd rules
-			rules = sheet.cssRules || sheet.rules;
-			// webkit's xd sheet returns rules == null
-			// opera's sheet always returns rules, but length is zero until loaded
-			// friggin IE doesn't count @import rules as rules, but IE should
-			// never hit this routine anyways.
-			ready = rules ?
-				rules.length > 0 : // || (sheet.imports && sheet.imports.length > 0) :
-				rules !== undef;
-			// thanks, Chrome 8, for this lovely hack
-			if (ready && navigator.userAgent.indexOf('Chrome') >= 0) {
-				sheet.insertRule('#_cssx_load_test{margin-top:-5px;}', 0);
-				ready = styleIsApplied();
-				sheet.deleteRule(0);
+			if(sheet){
+				// mozilla's sheet throws an exception if trying to access xd rules
+				rules = sheet.cssRules || sheet.rules;
+				// webkit's xd sheet returns rules == null
+				// opera's sheet always returns rules, but length is zero until loaded
+				// friggin IE doesn't count @import rules as rules, but IE should
+				// never hit this routine anyways.
+				ready = rules ?
+					rules.length > 0 : // || (sheet.imports && sheet.imports.length > 0) :
+					rules !== undef;
+				// thanks, Chrome 8, for this lovely hack
+				if (ready && navigator.userAgent.indexOf('Chrome') >= 0) {
+					sheet.insertRule('#_cssx_load_test{margin-top:-5px;}', 0);
+					ready = styleIsApplied();
+					sheet.deleteRule(0);
+				}
 			}
 		}
 		catch (ex) {
@@ -255,7 +270,109 @@
 					// (so 0 msec is enough time).
 					if(--loadingCount == 0){
 						// TODO: move this setTimeout to loadHandler
-						setTimeout(function () { callback(link); }, 0);
+						var onCssLoaded = function () {
+							//document.head.insertBefore(link, link.nextSibling);
+							function loadOnce(sheet, baseUrl){
+								// sheet.href is the standard way to access to absolute URL if it isn't IE,
+								// but IE9 completely calculates the sheet.href incorrectly when 
+								// @import occurs from a style sheet with a different base URI than the page
+								try{
+									var href = sheet.ownerRule && sheet.removeImport && // removeImport indicates it is IE
+										sheet.ownerRule.href;
+								}catch(e){
+									// certain IE setups will fail to access ownerRule.href, but sheet.href is valid
+								}
+								href = absoluteUrl(baseUrl, href || sheet.href); 
+								var existingSheet = href && insertedSheets[href]; 
+								if(existingSheet){
+									var sheetToDelete;
+									if(existingSheet != sheet){
+										var existingElement = existingSheet.ownerElement;
+										if(existingElement.compareDocumentPosition ? 
+												existingElement.compareDocumentPosition(link) != 2 :
+												existingElement.sourceIndex <= link.sourceIndex){
+											// this new sheet is after (or current), so we kill this one
+											sheetToDelete = sheet;
+										}else{
+											// the other sheet is after, so delete it
+											sheetToDelete = existingSheet;
+										}
+										//sheetToDelete.disabled = true;
+										var owner = sheetToDelete.ownerNode || !sheetToDelete.parentStyleSheet && sheetToDelete.owningElement;
+										if(owner){
+											// it is top level <link>, remove the node (disabling doesn't work properly in IE, but node removal works everywhere)
+											owner.parentNode.removeChild(owner); 
+										}else{
+											// disabling is the only way to remove an imported stylesheet in firefox; it doesn't work in IE and WebKit
+											sheetToDelete.disabled = true;
+											// removing the rule is only way to remove an imported stylesheet in IE and WebKit
+											owner = sheetToDelete.ownerRule || sheetToDelete;
+											var removeImport = existingSheet.removeImport;
+											try{
+												var parentStyleSheet = owner.parentStyleSheet;
+												if(!removeImport){
+													var parentRules = parentStyleSheet.cssRules;
+													for(var i = 0; i < parentRules.length; i++){
+														if(parentRules[i] == owner){
+															parentStyleSheet.deleteRule(i);
+															break;
+														}
+													}
+												}else{
+													parentStyleSheet.removeImport(owner);
+												}
+												return true;
+											}catch(e){
+												// opera fails on this, but the disabled works, so we can continue
+												console.log(e);
+											}
+										}
+									}
+								}else{
+									var recoverFromFailedLoad = function(){
+										var parentStyleSheet = sheet.parentStyleSheet.parentStyleSheet;
+										parentStyleSheet.addImport(href);
+										sheet = parentStyleSheet.imports[0];
+										console.log("retrying")
+										// TODO: this should cancel out
+										setTimeout(function(){
+											loadOnce(sheet, baseUrl);
+										}, 10);
+									};
+									if("cssText" in sheet && !sheet.cssText){ // In IE 8 and earlier, sheets that are 3 levels deep are disabled //"cssText" in sheet && !sheet.cssText){
+										// not ready yet, keep trying later
+										debugger;
+										recoverFromFailedLoad();
+										return;
+									}
+									if(href){
+										insertedSheets[href] = sheet;
+										sheet.ownerElement = link;
+									}
+									// now recurse into @import's to check to make sure each of those is only loaded once 
+									try{
+										var importRules = sheet.imports || sheet.rules || sheet.cssRules;
+									}catch(e){
+										debugger;
+										recoverFromFailedLoad();										
+										return;
+									}
+									
+									for(var i = 0; i < importRules.length; i++){
+										var rule = importRules[i];
+										if(rule.href && rule.parentStyleSheet){
+											if(loadOnce(rule.styleSheet || rule, href)){
+												i--; // deleted, so go back in index
+											}
+										}
+									}
+								}
+							}
+							loadOnce(link.sheet || link.styleSheet);
+							callback(link); 
+						};
+						onCssLoaded();
+						//setTimeout(onCssLoaded,0);
 					}
 				}
 
@@ -266,7 +383,7 @@
 						// TODO: this is a bit weird: find a better way to extract name?
 						opts = parseSuffixes(resourceDef),
 						name = opts.shift(),
-						url = require.toUrl(nameWithExt(name, 'css')),
+						url = nameWithExt(require.toUrl(name), 'css'),
 						link = createLink(doc),
 						nowait = 'nowait' in opts ? opts.nowait != 'false' : !!(config && config.cssDeferLoad),
 						params = {
@@ -274,7 +391,6 @@
 							url: url,
 							wait: config && config.cssWatchPeriod || 50
 						};
-
 					if (nowait) {
 						callback(link);
 					}
@@ -286,8 +402,8 @@
 					// go!
 					link.href = url;
 
-					head.insertBefore(link, after ? insertedSheets[after].nextSibling : head.firstChild);
-					insertedSheets[url] = link;
+					head.appendChild(link);
+					//insertedSheets[url] = link;
 				}
 			},
 
