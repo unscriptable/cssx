@@ -23,7 +23,7 @@ define([], function(){
 	//		|	create("div.foo");
 					
 	var selectorParse = /(([-+])|[,<> ])?\s*(\.|#)?([-\w]+)?(?:\[([^\]=]+)=?['"]?([^\]'"]*)['"]?\])?/g,
-		className = "className";		
+		className = "className", undefined;		
 	function create(referenceElement, selector, properties){
 		if(typeof referenceElement == "string"){
 			// first parameter is optional,
@@ -81,11 +81,15 @@ define([], function(){
 			throw new SyntaxError("Unexpected char " + leftoverCharacters);
 		}
 		current = current || referenceElement;
-		if(typeof properties == "string"){
-			current.innerHTML = properties;
-		}else{
-			for(var i in properties){
-				current[i] = properties[i];
+		if(properties !== undefined){
+			if(typeof properties == "object"){
+				// an object hash
+				for(var i in properties){
+					current[i] = properties[i];
+				}
+			}else{
+				// a scalar value, use createTextNode so it is properly escaped
+				current.appendChild(document.createTextNode(properties));
 			}
 		}
 		return current;
