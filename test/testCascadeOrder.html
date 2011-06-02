@@ -7,17 +7,26 @@
 <script>
 	require = {
 		paths: {
-			cssx: '../src/cssx/'
+			cssx: '/packages/cssx/'
 		}
 	};
 </script>
 
-<script src="require.js"></script>
+<script src="/dojo/dojo.js" data-dojo-config="async:true"></script>
 <!--<script src="curl.js"></script>-->
 
 <script>
+	require(['cssx/css!./testCascadeOrder1'], function(){
+		console.log("1 loaded");
+	});
 
-	require(['cssx/css!testCascadeOrder1,testCascadeOrder2']);
+	require(['cssx/css!./sub/testCascadeOrder2'], function(){
+		console.log("2 loaded");
+	});
+
+	require(['cssx/css!./testCascadeOrderShared'], function(){
+		console.log("3 loaded");
+	});
 
 </script>
 
@@ -30,15 +39,14 @@
 	.special.clazz {
 		color: blue;
 	}
-
 </style>
-
+<link href="./testCascadeOrder3.css" rel="stylesheet" type="text/css" />
 </head>
 <body class="dijitReset">
 
-if this text is green, then the stylesheets cascaded correctly
+if this text is green with a black background and blue border, then the stylesheets cascaded correctly
 
 <span class="clazz special">is this blue (good) or red (bad)?</span>
 
-</body>
+</body>document.getElementsByTagName("style")[0].styleSheet.imports
 </html>

@@ -1,0 +1,6 @@
+@import "../testCascadeOrder1.css";
+@import "./import-test.css";
+@import "../testCascadeOrderShared.css";
+.dijitReset {
+	color: green;
+}
