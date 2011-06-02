@@ -83,7 +83,7 @@
 		createElement = 'createElement',
 		// failed is true if RequireJS threw an exception
 		failed = false,
-		undef,
+		undef, importDepthError = {},
 		insertedSheets = {},
 		features = {
 			// true if the onload event handler works
@@ -282,7 +282,8 @@
 								}catch(e){
 									// certain IE setups will fail to access ownerRule.href, but sheet.href is valid
 								}
-								href = absoluteUrl(baseUrl, href || sheet.href); 
+								href = absoluteUrl(baseUrl, sheet.correctHref || sheet.href); 
+								console.log("href" + href);
 								var existingSheet = href && insertedSheets[href]; 
 								if(existingSheet){
 									var sheetToDelete;
@@ -307,29 +308,32 @@
 											sheetToDelete.disabled = true;
 											// removing the rule is only way to remove an imported stylesheet in IE and WebKit
 											owner = sheetToDelete.ownerRule || sheetToDelete;
+											console.log("deleting " + sheetToDelete.href + " from " + sheetToDelete.parentStyleSheet.href);
 											var removeImport = existingSheet.removeImport;
+											if(removeImport){
+												sheetToDelete.cssText ="";
+											}else{
 											try{
 												var parentStyleSheet = owner.parentStyleSheet;
-												if(!removeImport){
-													var parentRules = parentStyleSheet.cssRules;
-													for(var i = 0; i < parentRules.length; i++){
-														if(parentRules[i] == owner){
-															parentStyleSheet.deleteRule(i);
-															break;
-														}
+												var parentRules = parentStyleSheet.imports || parentStyleSheet.rules || parentStyleSheet.cssRules;
+												for(var i = 0; i < parentRules.length; i++){
+													// find the index of the owner rule that we want to delete
+													if(parentRules[i] == owner){
+														parentStyleSheet[removeImport ? "removeImport" : "deleteRule"](i);
+														break;
 													}
-												}else{
-													parentStyleSheet.removeImport(owner);
 												}
 												return true;
 											}catch(e){
-												// opera fails on this, but the disabled works, so we can continue
+												// opera fails on deleteRule for imports, but the disabled works, so we can continue
 												console.log(e);
+											}
 											}
 										}
 									}
 								}else{
-									var recoverFromFailedLoad = function(){
+									/*var recoverFromFailedLoad = function(){
+										// this is an initial attempt at fixing/correcting for IE's 2 level depth maximum on @import
 										var parentStyleSheet = sheet.parentStyleSheet.parentStyleSheet;
 										parentStyleSheet.addImport(href);
 										sheet = parentStyleSheet.imports[0];
@@ -342,9 +346,10 @@
 									if("cssText" in sheet && !sheet.cssText){ // In IE 8 and earlier, sheets that are 3 levels deep are disabled //"cssText" in sheet && !sheet.cssText){
 										// not ready yet, keep trying later
 										debugger;
+										throw importDepthError;
 										recoverFromFailedLoad();
 										return;
-									}
+									}*/
 									if(href){
 										insertedSheets[href] = sheet;
 										sheet.ownerElement = link;
@@ -352,21 +357,114 @@
 									// now recurse into @import's to check to make sure each of those is only loaded once 
 									try{
 										var importRules = sheet.imports || sheet.rules || sheet.cssRules;
+										importRules.length;
 									}catch(e){
+										// In IE, sheets that are 3 levels deep throw an error here
 										debugger;
-										recoverFromFailedLoad();										
+										var parentStyleSheet = sheet.parentStyleSheet.parentStyleSheet;
+										parentStyleSheet.addImport(href, 0); // TODO: right index here
+										sheet = parentStyleSheet.imports[0];
+										console.log("retrying")
+										// TODO: this should cancel out
+										setTimeout(function(){
+											loadOnce(sheet, baseUrl);
+										}, 10);
 										return;
 									}
 									
 									for(var i = 0; i < importRules.length; i++){
 										var rule = importRules[i];
-										if(rule.href && rule.parentStyleSheet){
-											if(loadOnce(rule.styleSheet || rule, href)){
-												i--; // deleted, so go back in index
-											}
+										if(rule.href){
+										/*if(rule.href && rule.parentStyleSheet){
+											//	rule.imports && rule.imports.length; // accessing the imports should throw an error in IE if we are too many levels deep
+											if("cssText" in rule && !rule.cssText){
+												console.log("retrying " + rule.href);
+												(function(sheet){
+													setTimeout(function(){
+														console.log("in retry" + sheet.href);
+														loadOnce(sheet, href);
+													}, 400);
+												})(rule);
+											}else{*/
+												//try{
+													if(loadOnce(rule.styleSheet || rule, href)){
+														i--; // deleted, so go back in index
+													}
+												/*}catch(e){
+													if(e){ // e.message.match(/storage/)
+														var subImports = rule.imports;
+														for(var j = 0; j < subImports.length; j++){
+															sheet.addImport(subImports[j].href, i);
+														}
+														i--;
+													}
+												}*/
 										}
 									}
 								}
+							}
+							function computeImportUrls(sheet, baseUrl){
+								var computedUrls = []
+								// IE miscalculates .href properties, so we calculate them by parsing
+								sheet.cssText.replace(/@import url\( ([^ ]+) \)/g, function(t, url){
+										// we have to actually parse the cssText because IE's href property is totally wrong
+										computedUrls.push(absoluteUrl(baseUrl, url));
+									});
+								return computedUrls;
+							}
+							function flattenImports(){
+								// IE doesn't support deeply nested @imports, so we flatten them.
+								//	IE needs imports rearranged and then to go through on a later turn.
+								// This function is a big pile of IE fixes
+								var flatteningOccurred, sheet = link.styleSheet;
+								if(sheet.processed){
+									return;
+								}
+								console.log("sheet css " + sheet.cssText);
+								if(!sheet.computedUrls){
+									// we have to do in a pre-loop or else IE's messes up on it's ownerRule's order
+									sheet.computedUrls = computeImportUrls(sheet, absoluteUrl(location.toString(), sheet.href));
+								}
+								for(var i = 0; i < sheet.imports.length; i++){
+									var importedSheet = sheet.imports[i];
+									console.log("importedSheet " + importedSheet.href + " = " + importedSheet.cssText)
+									if(!importedSheet.cssText && !importedSheet.loaded){ // empty means it is not loaded yet, try again later
+										console.log("import not loaded, deferring until later")
+										setTimeout(flattenImports, 50);
+										return;
+									}
+									importedSheet.loaded = true;
+									var correctHref = importedSheet.correctHref = sheet.computedUrls[i];
+									
+									var childHrefs = computeImportUrls(importedSheet, correctHref);
+									// Deep in an IE stylesheet
+									for(var j = 0; j < importedSheet.imports.length; j++){
+										// TODO: Think we can just stay in place and remove
+										var subImport = importedSheet.imports[j];
+										if(!subImport.correctHref){
+											flatteningOccurred = true;
+											link.onload = flattenImports;
+											console.log(importedSheet.imports.length);
+											var childHref = childHrefs[j];
+											console.log("importedSheet.href " + importedSheet.href + " childHref " + childHref);
+											console.log("import at " + childHref + " at " + i);
+											sheet.computedUrls.splice(i, 0, childHref);
+											sheet.addImport(childHref, i++);
+											subImport.correctHref = childHref; 
+										}
+									}
+								}
+								if(flatteningOccurred){
+									setTimeout(flattenImports, 50);
+								}else{
+									console.log("done flattening");
+									sheet.processed = true;
+									loadOnce(sheet);
+									callback(link);
+								}
+							}
+							if(link.styleSheet && link.styleSheet.removeImport){
+								return flattenImports();
 							}
 							loadOnce(link.sheet || link.styleSheet);
 							callback(link); 
@@ -403,7 +501,6 @@
 					link.href = url;
 
 					head.appendChild(link);
-					//insertedSheets[url] = link;
 				}
 			},
 
