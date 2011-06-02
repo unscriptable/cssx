@@ -272,15 +272,10 @@
 						var onCssLoaded = function () {
 							//document.head.insertBefore(link, link.nextSibling);
 							function loadOnce(sheet, baseUrl){
-								// sheet.href is the standard way to access to absolute URL if it isn't IE,
-								// but IE9 completely calculates the sheet.href incorrectly when 
-								// @import occurs from a style sheet with a different base URI than the page
-								try{
-									var href = sheet.ownerRule && sheet.removeImport && // removeImport indicates it is IE
-										sheet.ownerRule.href;
-								}catch(e){
-									// certain IE setups will fail to access ownerRule.href, but sheet.href is valid
-								}
+								// This function is responsible for implementing the @import once
+								// semantics, such extra @imports that resolve to the same
+								// CSS file are eliminated, and only the first one is kept
+								
 								href = absoluteUrl(baseUrl, sheet.correctHref || sheet.href); 
 								
 								var existingSheet = href && insertedSheets[href]; 
@@ -333,6 +328,7 @@
 								}
 								if(sheetToDelete != sheet){
 									if(href){
+										// record the stylesheet in our hash
 										insertedSheets[href] = sheet;
 										sheet.ownerElement = link;
 									}
@@ -401,12 +397,14 @@
 								}
 							}
 							if(link.styleSheet && link.styleSheet.removeImport){
+								// in IE, so we flatten the imports due to IE's lack of support for deeply nested @imports
 								return flattenImports();
 							}
 							loadOnce(link.sheet || link.styleSheet);
 							callback(link); 
 						};
 						onCssLoaded();
+						// TODO: Is this need for Opera?
 						//setTimeout(onCssLoaded,0);
 					}
 				}
