@@ -38,6 +38,7 @@ define(
 		var
 			undef,
 			debugMode,
+			alreadyConfigured,
 			head = document.head || document.getElementsByTagName('head')[0],
 			// this actually tests for absolute urls and root-relative urls
 			// they're both non-relative
@@ -267,6 +268,15 @@ define(
 
 		});
 
+		function configureCssx(config) {
+			alreadyConfigured = true;
+			if (config.cssxExclude) {
+				for (var i = 0; i < config.cssxExclude.length; i++) {
+					delete activeShims[config.cssxExclude[i]];
+				}
+			}
+		}
+
 		function has (feature) {
 			return hasFeatures[feature];
 		}
@@ -435,6 +445,11 @@ define(
 
 			shimCallback.then(
 				function () {
+
+					if (!alreadyConfigured) {
+						configureCssx(config);
+					}
+
 					// create a promise
 					var processor = new CssProcessor(activeShims),
 						stylesheet = getStylesheet(name, parentSheet),
