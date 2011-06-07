@@ -31,19 +31,20 @@ define(
 		function runFeatureTests (shims, callback) {
 			// get all of the feature tests
 			// collect any that fail
-			var failed = [];
+			var failed = [], names = [];
 			for (var n in tests) {
 				var ctx = {}, env = { isBuild: false }; // TODO: build-time
 				// only test for the shims that we don't already have
 				if (!(n in shims) && !tests[n].test(env, sniff, ctx)) {
 					failed.push(tests[n].name);
+					names.push(n);
 				}
 			}
 //console.log('the following shim tests failed:', failed);
 			// get the shims for those
 			require(failed, function () {
 				for (var i = 0; i < failed.length; i++) {
-					shims[failed[i]] = arguments[i];
+					shims[names[i]] = arguments[i];
 				}
 				callback(shims);
 			});

@@ -46,6 +46,7 @@ define(
 			// Note: this will fail if there are parentheses in the url
 			findUrlRx = /(?:url\()[^\)]*(?:\))/g,
 			stripUrlRx = /url\(\s*["']?|["']?\s*\)/g,
+			allShims = {},
 			activeShims = {};
 
 		function nameWithExt (name, defaultExt) {
@@ -250,29 +251,36 @@ define(
 
 		// go get shims
 		var shimCallback = new Promise();
-		shims(function (allShims) {
-
-			// collect shim handlers
-			for (var i in allShims) {
-				for (var p in allShims[i]) {
-					if (!(p in {})) {
-						if (!activeShims[p]) {
-							activeShims[p] = [];
-						}
-						activeShims[p].push(allShims[i][p]);
-					}
-				}
-			}
+		shims(function (shims) {
+			allShims = shims;
 
 			shimCallback.resolve();
 
 		});
 
 		function configureCssx(config) {
+			var i, p;
 			alreadyConfigured = true;
+			// exclude any shims that the dev said to exclude
 			if (config.cssxExclude) {
-				for (var i = 0; i < config.cssxExclude.length; i++) {
-					delete activeShims[config.cssxExclude[i]];
+				for (i = 0; i < config.cssxExclude.length; i++) {
+					p = config.cssxExclude[i];
+					if (allShims[p]) {
+						allShims[p].exclude = true;
+					}
+				}
+			}
+			// collect shim handlers
+			for (i in allShims) {
+				if (!(i in {}) && !allShims[i].exclude) {
+					for (p in allShims[i]) {
+						if (!(p in {})) {
+							if (!activeShims[p]) {
+								activeShims[p] = [];
+							}
+							activeShims[p].push(allShims[i][p]);
+						}
+					}
 				}
 			}
 		}
