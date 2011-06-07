@@ -261,18 +261,18 @@ define(
 		function configureCssx(config) {
 			var i, p;
 			alreadyConfigured = true;
-			// exclude any shims that the dev said to exclude
-			if (config.cssxExclude) {
-				for (i = 0; i < config.cssxExclude.length; i++) {
-					p = config.cssxExclude[i];
+			// ignore any shims that the dev said to ignore
+			if (config.cssxIgnore) {
+				for (i = 0; i < config.cssxIgnore.length; i++) {
+					p = config.cssxIgnore[i];
 					if (allShims[p]) {
-						allShims[p].exclude = true;
+						allShims[p].ignore = true;
 					}
 				}
 			}
 			// collect shim handlers
 			for (i in allShims) {
-				if (!(i in {}) && !allShims[i].exclude) {
+				if (!(i in {}) && !allShims[i].ignore) {
 					for (p in allShims[i]) {
 						if (!(p in {})) {
 							if (!activeShims[p]) {
@@ -496,9 +496,9 @@ define(
 							processor.resolve(processor.input);
 						}
 						else if (processor.input != undef /* truthy if null or undefined, but not "" */) {
-							// TODO: get directives in file to see what rules to skip/exclude
+							// TODO: get directives in file to see what rules to skip/ignore
 							//var directives = checkCssxDirectives(processor.input);
-							// TODO: get list of excludes from suffixes
+							// TODO: get list of ignores from suffixes
 							applyCssx(processor);
 						}
 					}
