@@ -8,7 +8,7 @@
 "use strict";
 
 /*
- * RequireJS css! plugin
+ * AMD css! plugin
  * This plugin will load and wait for css files.  This could be handy when
  * loading css files as part of a layer or as a way to apply a run-time theme.
  * Most browsers do not support the load event handler of the link element.
@@ -140,6 +140,16 @@ function parseSuffixes (name) {
 }
 
 function createLink (doc, optHref) {
+	// detect if we need to avoid 31-sheet limit in IE (how to detect this for realz?)
+	// TODO: create a better check for addImport
+	if (document.styleSheets && document.styleSheets.length && document.styleSheets[0].addImport) {
+		var ssCount = document.styleSheets.length;
+		// stop at 30, not 31 or we won't be able to create the collector sheet!
+		if (ssCount >= 30) {
+			moveLinksToCollector();
+			ssCount = 0;
+		}
+	}
 		var link = doc[createElement]('link');
 	link.rel = "stylesheet";
 	link.type = "text/css";
@@ -227,12 +237,26 @@ function loadDetector (params, cb) {
 		}
 	}
 	loadHandler(params, cbOnce);
-		if (!has("event-link-onload")) ssWatcher(params, cbOnce);
+		if (!has("event-link-onload")) {
+			ssWatcher(params, cbOnce);
+}
 }
 
 function cleanup (params) {
 	var link = params.link;
 		link[onreadystatechange] = link[onload] = null;
+}
+
+function moveLinksToCollector () {
+	var link, links, collector;
+	collector = document.createStyleSheet();
+	links = document.getElementsByTagName('link');
+	while ((link = links[0])) {
+		// move to the collectorSheet (note: bad cache directive will cause a re-download)
+		collector.addImport(link.href);
+		// remove from document
+		link.parentNode && link.parentNode.removeChild(link);
+	}
 }
 
 /***** finally! the actual plugin *****/

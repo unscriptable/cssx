@@ -188,7 +188,7 @@ define(
 
 			// create default output if we didn't get any from the shims
 			if (output.length) {
-				this.output.concat(output);
+				this.output.push.apply(this.output, output);
 			}
 			else {
 				this.output.push('\t', name, ':', value, ';\n');
@@ -281,17 +281,16 @@ define(
 			return bare ? path : 'url("' + path + '")';
 		}
 
-		var currentSheet, currentSheetId = 0;
+		var nextSheet;
 		function getStylesheet (name, parentSheet) {
 			if (has('dom-create-stylesheet')) {
-				// this is a lame attempt to avoid 4000-rule limit of IE
-				if (!currentSheet || currentSheet.rules.length > 3000) {
-					currentSheet = document.createStyleSheet();
-					// since we're combining files, name is not imprecise,
-					// so we generate an id
-					currentSheet.id = currentSheetId++;
+				var sheet = nextSheet;
+				nextSheet = document.createStyleSheet();
+				if (document.styleSheets.length >= 30) {
+					moveSheetsToCollector();
 				}
-				return currentSheet;
+				sheet.owningElement.setAttribute('data-cssx-id', name);
+				return sheet;
 			}
 			else {
 				// we can use standard <style> element creation
@@ -312,22 +311,45 @@ define(
 		function insertCss (sheet, css) {
 			if (has('stylesheet-cssText')) {
 				// IE mangles cssText if you try to read it out, so we have
-				// to save a copy of the originals in cssxSheets;
-				var id = sheet.id;
-				var sheets = cssxSheets[id] = cssxSheets[id] || [];
-				sheets.push(css);
-				sheet.cssText = sheets.join('\n\n/************/\n\n');
+				// to save a copy of the original cssText in cssxSheets;
+				cssxSheets.push(css);
+				// TODO: delay callback when this happens:
+				try { sheet.cssText = css; } catch (ex) { setTimeout(function () { sheet.cssText = css; }, 10)};
 			}
 			else {
 				sheet.appendChild(document.createTextNode(css));
 			}
 		}
 
+		function moveSheetsToCollector () {
+			// TODO: this routine does not avoid the 4095-selector limit in IE6-8 FIXME!
+			var style, styles, collector, cssText, i = 0;
+			// crete collector sheet
+			collector = nextSheet;
+			nextSheet = document.createStyleSheet();
+			// move all css text to collector sheet
+			cssText = cssxSheets.join('\n\n');
+			cssxSheets = [cssText];
+			collector.cssText = cssText;
+			// remove redundant sheets (all of the ones we've labeled
+			styles = document.getElementsByTagName('style');
+			while ((style = styles[i])) {
+				if (style.getAttribute('data-cssx-id')) {
+					// remove from document
+					style.parentNode && style.parentNode.removeChild(style);
+				}
+				else {
+						// skip
+						i++;
+				}
+			}
+		}
+
 		var hasFeatures = {
 			'dom-create-stylesheet': !!document.createStyleSheet,
 			'stylesheet-cssText': document.createStyleSheet &&
-				(currentSheet = document.createStyleSheet()) &&
-				('cssText' in currentSheet)
+				(nextSheet = document.createStyleSheet()) &&
+				('cssText' in nextSheet)
 		};
 
 
@@ -413,7 +435,6 @@ define(
 
 			shimCallback.then(
 				function () {
-
 					// create a promise
 					var processor = new CssProcessor(activeShims),
 						stylesheet = getStylesheet(name, parentSheet),

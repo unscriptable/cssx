@@ -54,7 +54,7 @@
 					// here's the post-processing needed:
 					className = className.replace(/^\s/, '');
 					accum |= (map[className] || 0);
-					return className; // minimizes memory allocation work
+					return; // minimizes memory allocation work
 				});
 				return this.full == accum;
 			}
@@ -78,6 +78,7 @@
 				selector = selector.replace(comboFinderRx, function (match, other, combo) {
 					var key = createKey(),
 						newPart = other + '.' + key ;
+
 					replacements.push({
 						other: other,
 						combo: combo,
@@ -124,18 +125,17 @@
 
 	});
 
-	// TODO: remove this and replace it with something simpler
 	function toggleClass (node, className, add) {
-		var replaced, newClassName, replaceRx = new RegExp('\\s?' + className + '\\s?');
-		newClassName = node.className.replace(replaceRx, function (match) {
-			replaced = add;
-			return add ? match : '';
-		});
-		newClassName += add && !replaced ? ' ' + className : '';
-		// IE6 isn't smart enough to check if className actually changed
-		if (node.className != newClassName) {
-			node.className = newClassName;
+		var classes, classPos;
+		classes = ' ' + node.className + ' ';
+		classPos = classes.indexOf(className);
+		if (add && classPos < 0) {
+			node.className = classes.substr(1) + className;
 		}
+		else if (!add && classPos >= 0) {
+			node.className = classes.substr(1, classPos - 2) +
+				classes.substring(classPos + className.length, classes.length - 1);
+	}
 	}
 
 	global['cssx_combo_selector_check'] = function (node, origClass, checkerId) {
