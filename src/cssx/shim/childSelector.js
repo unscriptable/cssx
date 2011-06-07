@@ -9,11 +9,7 @@
 
 (function (global, doc) {
 
-	var ancestries, id = 0,
-		ancestrySplitterRx = /\s*>\s*/g,
-		rightTemplate = '${0}{${1}:expression(cssx_child_selector_right(this,"${1}","${2}"));}\n',
-		levelTemplate = '${0}{${1}:expression(cssx_child_selector(this,"${1}","${2}"));}\n',
-		leftTemplate = '${0}{${1}:${1}}';
+	var ancestries, id = 0;
 
 	function createKey () {
         return 'cssx-child-selector-' + id++;
@@ -26,66 +22,55 @@
 		});
 	}
 	
-	define({
+	define(['./mediator'], function (mediator) {
 
-		onSelector: function (selector) {
+		return {
+			
+			onSelector: function (selector) {
 
-			if (selector.indexOf('>') >= 0) {
+				if (selector.indexOf('>') >= 0) {
 
-				// create unique key for this ancestry
-				var key = createKey();
+					// create unique key for this ancestry
+					var key = createKey();
 
-				// save ancestry
-				ancestries = ancestries || [];
-				ancestries.push({ selector: selector, key: key });
+					// save ancestry
+					ancestries = ancestries || [];
+					ancestries.push({ selector: selector, key: key });
 
-				return '.' + key;
-			}
+					return '.' + key;
+				}
 
-		},
+			},
 
-		onEndRule: function (selectors) {
-			var i, j, ancestry, level, parentKey, childKey, output = '';
+			onEndRule: function (selectors) {
+				var i, j, ancestry;
 
-			if (ancestries && ancestries.length > 0) {
+				if (ancestries && ancestries.length > 0) {
 
-				for (i = 0; i < ancestries.length; i++) {
+					for (i = 0; i < ancestries.length; i++) {
 
-					// TODO: bail if any blanks were found in ancestry
-					ancestry = ancestries[i].selector.split(ancestrySplitterRx);
-					childKey = ancestries[i].key;
+						ancestry = ancestries[i];
 
-					for (j = ancestry.length - 1; j > 0; j--) {
-
-						level = ancestry[j];
-
-						parentKey = createKey();
-
-						if (j == ancestry.length - 1) {
-							// create right-most rule
-							output += replace(rightTemplate, [level, childKey, parentKey]);
-						}
-						else {
-							output += replace(levelTemplate, [level, childKey, parentKey]);
-						}
-						
-						childKey = parentKey;
+						mediator.addSelector(ancestry.selector, applyKeyClass, { key: ancestry.key });
 
 					}
-
-					// create left-most rule
-					output += replace(leftTemplate, [ancestry[0], parentKey]);
-
 				}
+
+				// clean up ancestries
+				ancestries = null;
 			}
-
-			// clean up ancestries
-			ancestries = null;
-
-			return output;
-		}
+		};
 
 	});
+
+	function applyKeyClass (info) {
+		var nodeList, i;
+		nodeList = info.querySelectorAll(info.node, info.selector);
+		for (i = 0; i < nodeList.length; i++) {
+			toggleClass(nodeList[i], info.privateData.key, info.added);
+		}
+	}
+
 
 	function toggleClass (node, className, add) {
 		var classes, classPos;
@@ -97,17 +82,7 @@
 		else if (!add && classPos >= 0) {
 			node.className = classes.substr(1, classPos - 2) +
 				classes.substring(classPos + className.length, classes.length - 1);
+		}
 	}
-	}
-
-	global['cssx_child_selector'] = function (node, childKey, parentKey) {
-		var parent = node.parentNode;
-		return parent && parent.currentStyle[parentKey] == parentKey ? childKey : '';
-	};
-
-	global['cssx_child_selector_right'] = function (node, origKey, parentKey) {
-		var parent = node.parentNode;
-		toggleClass(node, origKey, parent && parent.currentStyle[parentKey] == parentKey);
-	};
 
 }(this, document));
