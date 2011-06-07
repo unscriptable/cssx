@@ -313,7 +313,8 @@ define(
 				// IE mangles cssText if you try to read it out, so we have
 				// to save a copy of the original cssText in cssxSheets;
 				cssxSheets.push(css);
-				sheet.cssText = css;
+				// TODO: delay callback when this happens:
+				try { sheet.cssText = css; } catch (ex) { setTimeout(function () { sheet.cssText = css; }, 10)};
 				}
 			else {
 				sheet.appendChild(document.createTextNode(css));
