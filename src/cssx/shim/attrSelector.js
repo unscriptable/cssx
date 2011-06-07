@@ -47,7 +47,6 @@
 					});
 					return newPart;
 				});
-//alert('new selector: ' + selector);
 				return selector;
 			}
 
@@ -62,7 +61,6 @@
 
 					part = replacements[i];
 					part.attrDef.replace(attrSplitterRx, function (match, attr, value) {
-//alert('attr: ' + attr + ' value: ' + value);
 						rules += templatize(ruleTemplate, [part.base, part.key, attr, value]);
 						return ''; // minimizes memory allocation work
 					});
@@ -74,7 +72,6 @@
 
 			// clean up replacements
 			replacements = null;
-//if (baseRule) alert(baseRule);
 			return baseRule;
 
 		}
@@ -96,7 +93,6 @@
 
 	global['cssx_attr_selector_check'] = function (node, proxyClass, attr, value) {
 		var valid = attr && node.getAttribute(attr) == value;
-//alert(valid + ' ' + attr + ' '+ value);
 		toggleClass(node, proxyClass, valid);
 		return '';
 	};
