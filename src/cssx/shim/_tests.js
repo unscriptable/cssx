@@ -53,7 +53,7 @@ define({
 			// would require setting height of an inline-block node and
 			// verifying the height which would need to wait for domready.
 			// FIXME: do a true test?
-			return sniff.cssProp('outline') &&  !sniff.cssProp('filter');
+			return sniff.cssProp('outline');
 		},
 		name: './shim/inlineBlock'
 	},
@@ -66,7 +66,7 @@ define({
 			// Note IE7 supports box offset positioning *in theory* but
 			// fails in most non-trivial scenarios.
 			// FIXME: do a true test?
-			return sniff.cssProp('outline') &&  !sniff.cssProp('filter');
+			return sniff.cssProp('outline');
 		},
 		name: './shim/boxOffsets'
 	},
