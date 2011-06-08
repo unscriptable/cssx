@@ -30,20 +30,24 @@ define(function () {
 	}
 
 	function setQuerySelectorAll (qsa, force) {
-		if (!qsa || force) querySelectorAll = qsa;
+		if (!querySelectorAll || force) querySelectorAll = qsa;
 	}
 
+	// TODO: change this to accept attr mutations and use W3C dom mutation events
+	// http://www.w3.org/TR/DOM-Level-2-Events/events.html#Events-eventgroupings-mutationevents
 	function mutated (node, className, defer) {
 		var handlers, deferredList, handler, params;
 		handlers = className ?
 				   (selectorHandlers[className] ? selectorHandlers[className].slice() : []) :
 				   getAllHandlers();
 		deferredList = [];
+		node = node || document.body;
 		while ((handler = handlers.pop())) {
 			params = {
 				node: node,
 				className: className,
 				defer: defer,
+				added: !defer, // TODO: how to convey className-related stuff when doing attrs?
 				nodes: querySelectorAll(node, handler.selector),
 				selector: handler.selector,
 				callback: handler.callback,
