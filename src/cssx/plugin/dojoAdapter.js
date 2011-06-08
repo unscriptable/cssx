@@ -1,30 +1,31 @@
 /**
  * Copyright (c) 2011 unscriptable.com
  *
- * dojo plugin for coordinating with cssx run-time shims
+ * dojo adapter plugin for coordinating with cssx run-time shims
  *
  */
 define(
-['dojo/_base/html', 'dojo/_base/query', '../shim/mediator'],
-function (html, query, mediator) {
+['dojo', 'dojo/parser', 'cssx/shim/mediator'],
+function (dojo, dojoParser, mediator) {
 
 	var orig, undef;
-
-	// dojo 1.6 is pretty lame. it doesn't return anything for the dojo/_base/query module
-	query = typeof query == 'function' ? query : dojo.query;
 
 	function isString (obj) {
 		return Object.prototype.toString.call(obj) == '[object String]';
 	}
 
+	function isArray (obj) {
+		return Object.prototype.toString.call(obj) == '[object Array]';
+	}
+
 	function mutated (node, classes, defer) {
-		var classList, className, callbacks;
+		var classList, className, callbacks, runOnce = {};
 		// ensure we have a node and an array
-		node = html.byId(node);
-		classList = isString(classes) ? classes.split(' ') : classes.slice();
+		node = dojo.byId(node);
+		classList = isString(classes) ? classes.split(' ') : isArray(classes) ? classes.slice() : [runOnce];
 		callbacks = [];
 		while ((className = classList.pop())) {
-			callbacks.push(mediator.mutated(node, className, defer));
+			callbacks.push(mediator.mutated(node, className == runOnce ? undef : className, defer));
 		}
 		return callbacks;
 	}
@@ -35,26 +36,27 @@ function (html, query, mediator) {
 		}
 	}
 
-	mediator.setQuerySelectorAll(query);
+	mediator.setQuerySelectorAll(dojo.query);
 
 	// wrap dojo's methods for manipulating classes and parsing html
 	orig = {
-		addClass: html.addClass,
-		removeClass: html.removeClass,
-		replaceClass: html.replaceClass,
-		toggleClass: html.toggleClass,
-		attr: html.attr,
-		_toDom: html._toDom
+		addClass: dojo.addClass,
+		removeClass: dojo.removeClass,
+		replaceClass: dojo.replaceClass,
+		toggleClass: dojo.toggleClass,
+		attr: dojo.attr,
+		_toDom: dojo._toDom,
+		parse: dojoParser.parse
 	};
 
-	html.addClass = function (nodeOrId, classes) {
+	dojo.addClass = function (nodeOrId, classes) {
 		var result;
 		result = orig.addClass(nodeOrId, classes);
 		mutated(nodeOrId, classes, false);
 		return result;
 	};
 
-	html.removeClass = function (nodeOrId, classes) {
+	dojo.removeClass = function (nodeOrId, classes) {
 		var result, callbacks;
 		callbacks = mutated(nodeOrId, classes, true);
 		result = orig.removeClass(nodeOrId, classes);
@@ -62,9 +64,9 @@ function (html, query, mediator) {
 		return result;
 	};
 
-	html.toggleClass = function (nodeOrId, className, condition) {
+	dojo.toggleClass = function (nodeOrId, className, condition) {
 		var result, callbacks, hasClass;
-		hasClass = html.hasClass(nodeOrId, className);
+		hasClass = dojo.hasClass(nodeOrId, className);
 		if (hasClass) callbacks = mutated(nodeOrId, [className], true);
 		result = orig.toggleClass(nodeOrId, className, condition);
 		if (!hasClass) mutated(nodeOrId, [className], false);
@@ -72,7 +74,7 @@ function (html, query, mediator) {
 		return result;
 	};
 
-	html.replaceClass = function(nodeOrId, newClasses, oldClasses) {
+	dojo.replaceClass = function(nodeOrId, newClasses, oldClasses) {
 		var result, callbacks;
 		callbacks = mutated(nodeOrId, oldClasses, true);
 		result = orig.replaceClass(nodeOrId, newClasses, oldClasses);
@@ -82,13 +84,13 @@ function (html, query, mediator) {
 	};
 
 	// TODO:
-	html.attr = function (node, name, value) {
+	dojo.attr = function (node, name, value) {
 		var result;
 		result = orig.attr(node, name, value);
 		if (arguments.length == 2) {
 			// special case if name == 'class' or 'className'
 			if (name == 'class' || name == 'className') {
-				html.replaceClass(node, value, node.className);
+				dojo.replaceClass(node, value, node.className);
 			}
 			else {
 				// TODO: handle non-className attributes
@@ -97,7 +99,7 @@ function (html, query, mediator) {
 		return result;
 	};
 
-	html._toDom = function (frag, doc) {
+	dojo._toDom = function (frag, doc) {
 		// html._toDom (instead of parser.parse and html.create/place
 		// and dijit#buildRendering)
 		var result;
@@ -105,5 +107,13 @@ function (html, query, mediator) {
 		mutated(result, undef, false);
 		return result;
 	};
+
+	dojoParser.parse = function (rootNode, args) {
+		var result;
+		rootNode = rootNode || dojo.body();
+		result = orig.parse.call(dojoParser, rootNode, args);
+		mutated(rootNode, undef, false);
+		return result;
+	}
 
 });
