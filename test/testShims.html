@@ -7,33 +7,38 @@
 <script>
 	curl = {
 		paths: {
-			cssx: '../src/cssx/'
-		}
+			cssx: '../src/cssx/',
+			curl: '../../curl/src/curl/'
+		},
+		packages: [
+			{
+				name: 'dojo',
+				lib: '../../dojo%201.6.0/dojo/',
+				main: '../../dojo%201.6.0/dojo/lib/main-browser'
+			}
+		]
 	};
 </script>
 
 <!--<script src="require.js"></script>-->
+<!--<script src="../../curl/dist/curl-for-dojo1.6/curl.js"></script>-->
 <script src="../../curl/src/curl.js"></script>
 
 <script>
 var now = new Date();
-curl(
+curl(['curl/dojo16Compat']).next(
 	[
+		'dojo/parser',
+		'cssx/plugin/dojoAdapter',
 		'cssx/cssx!ss/scrollbar.css',
 		'cssx/cssx!ss/hover.css',
 		'cssx/cssx!ss/selectors.css',
-		'cssx/cssx!ss/image.css'
+		'cssx/cssx!ss/image.css',
+		'curl/domReady'
 	],
-	function () {
+	function (parser) {
 
-		// debug code:
-		var finalSheet = document.styleSheets[document.styleSheets.length - 1],
-			cssxSheets = finalSheet.cssxSheets;
-		if (cssxSheets) {
-			var node = document.createElement('div');
-			node.innerHTML = cssxSheets.join('\n').replace(/\n/g, '<br/>');
-			document.body.appendChild(node);
-		}
+		parser.parse();
 
 	}
 );
