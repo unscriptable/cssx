@@ -65,7 +65,7 @@
 
 	function applyKeyClass (info) {
 		var nodeList, i;
-		nodeList = info.querySelectorAll(info.node, info.selector);
+		nodeList = info.querySelectorAll(info.selector, info.node);
 		for (i = 0; i < nodeList.length; i++) {
 			toggleClass(nodeList[i], info.privateData.key, info.added);
 		}
