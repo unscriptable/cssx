@@ -23,7 +23,8 @@ define([], function(){
 	//		|	create("div.foo");
 					
 	var selectorParse = /(([-+])|[,<> ])?\s*(\.|#)?([-\w]+)?(?:\[([^\]=]+)=?['"]?([^\]'"]*)['"]?\])?/g,
-		className = "className", undefined;		
+		fragmentFasterHeuristic = /[-+,> ]/; // if it has any of these combinators, it is probably going to be faster with a document fragment 	
+		className = "className", undefined;
 	function create(referenceElement, selector, properties){
 		if(typeof referenceElement == "string"){
 			// first parameter is optional,
@@ -31,9 +32,25 @@ define([], function(){
 			selector = referenceElement;
 			referenceElement = null;
 		}
-		var nextSibling = null, current, topReferenceElement = referenceElement;
+		var nextSibling = null, current, topReferenceElement = referenceElement, 
+			fragment = referenceElement && referenceElement.nodeType == 1 && 
+					fragmentFasterHeuristic.test(selector) && document.createDocumentFragment();
+		function insertLastElement(){
+			// we perform insertBefore actions after the element is fully created to work properly with 
+			// <input> tags in older versions of IE that require type attributes
+			//	to be set before it is attached to a parent.
+			// We also handle top level as a document fragment actions in a complex creation 
+			// are done on a detached DOM which is much faster
+			// Also if there is a parse error, we generally error out before doing any DOM operations (more atomic) 
+			if(current && referenceElement){
+				(referenceElement == topReferenceElement && fragment ? 
+					fragment : referenceElement).insertBefore(current, nextSibling);
+			}
+		}
 		var leftoverCharacters = selector.replace(selectorParse, function(t, combinator, siblingCombinator, prefix, value, attrName, attrValue){
 			if(combinator){
+				// insert the last current object
+				insertLastElement();
 				if(siblingCombinator){
 					// + or - combinator, 
 					referenceElement = (nextSibling = (current || referenceElement)).parentNode;
@@ -58,9 +75,6 @@ define([], function(){
 			if(tag || (!current && (prefix || attrName))){
 				// Need to create an element
 				current = document.createElement(tag || create.defaultTag);
-				if(referenceElement){
-					referenceElement.insertBefore(current, nextSibling);
-				}
 			}
 			if(prefix){
 				if(prefix == "."){
@@ -80,19 +94,25 @@ define([], function(){
 		if(leftoverCharacters){
 			throw new SyntaxError("Unexpected char " + leftoverCharacters);
 		}
-		current = current || referenceElement;
+		var returnElement = current || referenceElement;
 		if(properties !== undefined){
 			if(typeof properties == "object"){
 				// an object hash
 				for(var i in properties){
-					current[i] = properties[i];
+					returnElement[i] = properties[i];
 				}
 			}else{
 				// a scalar value, use createTextNode so it is properly escaped
-				current.appendChild(document.createTextNode(properties));
+				returnElement.appendChild(document.createTextNode(properties));
 			}
 		}
-		return current;
+		// insert the last element (if it didn't end with a combinator)
+		insertLastElement();
+		if(topReferenceElement && fragment){
+			// we now insert the top level elements for the fragment if it exists
+			topReferenceElement.appendChild(fragment);
+		}
+		return returnElement;
 	}
 	create.defaultTag = "div";
 	return create;
