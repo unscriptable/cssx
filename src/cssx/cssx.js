@@ -151,7 +151,6 @@ define(
 			var result, orig = value, output = [], modified;
 
 			// fix any urls.
-			var basePath = 
 			var basePath = this.basePath;
 			value = (value || '').replace(findUrlRx, function (url) {
 				modified = true;
