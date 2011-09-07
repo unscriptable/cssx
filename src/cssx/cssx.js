@@ -151,6 +151,7 @@ define(
 			var result, orig = value, output = [], modified;
 
 			// fix any urls.
+			var basePath = 
 			var basePath = this.basePath;
 			value = (value || '').replace(findUrlRx, function (url) {
 				modified = true;
@@ -422,6 +423,9 @@ define(
 					// add some useful stuff to it
 					processor.input = '';
 					processor.basePath = require['toUrl'](relPath);
+					//TODO: patch require.js instead of this file
+					if (processor.basePath && processor.basePath.match(/.*\.js$/))
+						processor.basePath =  processor.basePath.substr(0,processor.basePath.length-3);
 					processor.loadImport = function (imported) {
 						// TODO: move imported stylesheet before parent
 						// TODO: somehow move @imported rules before current rules in IE
