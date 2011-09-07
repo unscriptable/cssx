@@ -422,10 +422,9 @@ define(
 
 					// add some useful stuff to it
 					processor.input = '';
-					processor.basePath = require['toUrl'](relPath);
-					//TODO: patch require.js instead of this file
-					if (processor.basePath && processor.basePath.match(/.*\.js$/))
-						processor.basePath =  processor.basePath.substr(0,processor.basePath.length-3);
+					processor.basePath = require['toUrl'](name);
+					if (processor.basePath)
+						processor.basePath = processor.basePath.substr(0,processor.basePath.lastIndexOf('/') + 1);
 					processor.loadImport = function (imported) {
 						// TODO: move imported stylesheet before parent
 						// TODO: somehow move @imported rules before current rules in IE
