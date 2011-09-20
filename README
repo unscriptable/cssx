@@ -1,8 +1,18 @@
 cssx (Cujo Style Sheet eXtender)
 
-current version: 0.1
-Note: all but the css.js plugin is in flux right now. You may use
-the css.js file safely. It now works with Chrome 8+.
+This project is no longer being maintained.  If you are looking for an AMD plugin for loading css, check out these:
+
+link! - loads css files in a link element
+https://github.com/unscriptable/curl/blob/master/src/curl/plugin/link.js
+
+css! - loads via link element or embeds css text into javascript and injects a style tag
+https://github.com/unscriptable/curl/blob/master/src/curl/plugin/css.js
+
+If you are interested in an AMD plugin that shims CSS3 features for older browsers (and more), check out Kris Zyp's xstyle:
+
+https://github.com/kriszyp/xstyle
+
+cssx: current version: 0.1
 
 The following shims modules are working:
  * boxOffsets (IE6)
