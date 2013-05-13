@@ -1,12 +1,14 @@
 cssx (Cujo Style Sheet eXtender)
 
-This project is no longer being maintained.  If you are looking for an AMD plugin for loading css, check out these:
+***** This project is no longer being maintained! *****
+
+If you are looking for an AMD plugin for loading css, check out these:
 
 link! - loads css files in a link element
-https://github.com/unscriptable/curl/blob/master/src/curl/plugin/link.js
-
 css! - loads via link element or embeds css text into javascript and injects a style tag
-https://github.com/unscriptable/curl/blob/master/src/curl/plugin/css.js
+
+Both of these are maintained in the cujoJS curl.js repo:
+https://github.com/cujojs/curl/
 
 If you are interested in an AMD plugin that shims CSS3 features for older browsers (and more), check out Kris Zyp's xstyle:
 
